@@ -46,10 +46,10 @@ body{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .range{font:700 32px/1 Barlow Condensed,sans-serif;color:var(--blue);text-align:right}
 .bar{height:8px;background:#d5dfeb;border-radius:999px;overflow:hidden;margin-top:8px}
 .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--green),#74d04b)}
-.shortcuts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 14px;position:relative;z-index:10}
+.shortcuts{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:12px 14px;position:relative;z-index:10;pointer-events:auto}
 .shortcut,.btn{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;pointer-events:auto}
-.shortcut{min-height:72px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;text-decoration:none;color:var(--text);position:relative;z-index:11}
-.shortcut .ic{font-size:22px}
+.shortcut{min-height:56px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;text-decoration:none;color:var(--text);position:relative;z-index:11}
+.shortcut .ic{font-size:20px}
 .shortcut .tx{font:700 10px/1 Barlow Condensed,sans-serif;letter-spacing:.8px}
 .cellsCard{padding:12px 14px}
 .cellsTop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -59,7 +59,7 @@ body{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .cell .mv{font:700 11px/1 'Share Tech Mono',monospace;margin-top:4px}
 .miniBar{height:6px;background:#d6dfeb;border-radius:999px;overflow:hidden;margin-top:5px}
 .miniBar i{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green))}
-.footer{position:sticky;bottom:0;z-index:20;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(238,243,251,.05),rgba(238,243,251,.92) 18%, rgba(238,243,251,1) 100%);box-shadow:0 -8px 20px rgba(18,28,45,.08);pointer-events:auto}
+.footer{position:sticky;bottom:0;z-index:30;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(238,243,251,.05),rgba(238,243,251,.92) 18%, rgba(238,243,251,1) 100%);box-shadow:0 -8px 20px rgba(18,28,45,.08);pointer-events:auto}
 .status{font:700 11px/1 'Share Tech Mono',monospace;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;pointer-events:auto}
 .btn{border:1px solid var(--line);border-radius:999px;background:#fff;box-shadow:var(--shadow);color:var(--text);padding:12px 16px;min-width:92px;font:700 10px/1 Barlow Condensed,sans-serif;letter-spacing:.8px;position:relative;z-index:11}
@@ -101,8 +101,7 @@ body{touch-action:manipulation;-webkit-user-select:none;user-select:none}
       </svg>
       <div class="speed"><span id="speed">0.0</span><span class="unit"> km/h</span></div>
     </section>
-
-    <section class="grid2">
+        <section class="grid2">
       <div class="card metric">
         <div class="label">LUMI / OGGI</div>
         <div class="value" id="clock">--:--:--</div>
@@ -162,6 +161,9 @@ body{touch-action:manipulation;-webkit-user-select:none;user-select:none}
         <button class="shortcut" id="connectBtn2" type="button"><div class="ic">🔌</div><div class="tx">BMS</div></button>
         <button class="shortcut" id="histBtn" type="button"><div class="ic">🕘</div><div class="tx">HISTORY</div></button>
         <button class="shortcut" id="gpsQuickBtn" type="button"><div class="ic">📡</div><div class="tx">GPS</div></button>
+        <a class="shortcut" href="tel:+390000000000"><div class="ic">📞</div><div class="tx">CALL</div></a>
+        <a class="shortcut" href="https://maps.google.com" target="_blank" rel="noopener"><div class="ic">📍</div><div class="tx">MAPS</div></a>
+        <a class="shortcut" href="https://open.spotify.com" target="_blank" rel="noopener"><div class="ic">🎵</div><div class="tx">SPOT</div></a>
       </div>
     </section>
 
@@ -190,34 +192,48 @@ body{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 </div>
 <div id="overlayRoot"></div>
 <div class="toastWrap" id="toastWrap"></div>
-
-<script>
+  <script>
 const $=s=>document.querySelector(s);
-const store={k:'ebikeAndroidDash_v1'};
-let state={speed:0,distance:0,tripStart:Date.now(),lastPos:null,wake:null,gpsWatch:null,gpsOn:false,history:JSON.parse(localStorage.getItem(store.k)||'[]'),bmsDevice:null,bmsTimer:null};
+const store={k:'ebikeAndroidDash_fixed'};
+let state={speed:0,distance:0,tripStart:Date.now(),lastPos:null,wake:null,gpsWatch:null,gpsOn:false,history:JSON.parse(localStorage.getItem(store.k)||'[]'),bmsDevice:null};
+
 function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;$('#toastWrap').appendChild(e);setTimeout(()=>e.remove(),2200)}
 function setStatus(t){$('#status').textContent=t;$('#bleLog').textContent=($('#bleLog').textContent==='Pronto.'?'':$('#bleLog').textContent+'
 ')+t}
 function tick(){const d=new Date();$('#clock').textContent=d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',second:'2-digit'});$('#date').textContent=d.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'})}
 setInterval(tick,1000);tick();
+
 function arcForSpeed(v){const p=Math.max(0,Math.min(1,v/50));const len=2*Math.PI*118*0.5;$('#arc').setAttribute('stroke-dasharray',`${len*p} 999`);$('#needle').setAttribute('transform',`translate(160 170) rotate(${-110+(220*p)})`)}
 function H(a,b){const R=6371,e=x=>x*Math.PI/180;const dLat=e(b.lat-a.lat),dLon=e(b.lon-a.lon),lat1=e(a.lat),lat2=e(b.lat);const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 function bindTap(sel,fn){const el=$(sel);if(!el)return;let lock=false;const run=e=>{if(lock)return;lock=true;setTimeout(()=>lock=false,350);e.preventDefault();e.stopPropagation();fn(e)};el.addEventListener('pointerup',run,{passive:false});el.addEventListener('touchend',run,{passive:false});el.addEventListener('click',run,{passive:false})}
+
 function setGpsBars(acc){const bars=[15,8,5,3];$('#gpsbars').querySelectorAll('.gpsbar').forEach((el,i)=>{el.className='gpsbar';if(acc==null)return;if(acc<=bars[i])el.classList.add('on'+(i+1))})}
 async function reversePlace(lat,lon){try{const r=await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=it&format=json`);const j=await r.json();const p=j.results?.[0];return p?[p.name,p.admin1,p.country].filter(Boolean).join(', '):`GPS ${lat.toFixed(4)}, ${lon.toFixed(4)}`}catch{return `GPS ${lat.toFixed(4)}, ${lon.toFixed(4)}`}}
 async function updateWeather(lat,lon){try{const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto`);const j=await r.json();const c=j.current||{};$('#weatherPlace').textContent=await reversePlace(lat,lon);$('#temp').textContent=c.temperature_2m==null?'—':Number(c.temperature_2m).toFixed(1);$('#weatherHum').textContent=c.relative_humidity_2m==null?'—':`Umidità ${Math.round(c.relative_humidity_2m)}%`;$('#weatherWind').textContent=c.wind_speed_10m==null?'—':`Vento ${Number(c.wind_speed_10m).toFixed(1)} km/h`;setStatus('Meteo aggiornato')}catch{setStatus('Meteo non disponibile')}}
-function renderBatteryNull(reason){$('#soc').textContent='—';$('#rangeKm').textContent='—';$('#packInfo').textContent=reason||'—';$('#packBar').style.width='0%';$('#cellAlert').textContent='—';$('#cells').innerHTML=''}
+
+function renderBatteryNull(reason){$('#soc').textContent='—';$('#rangeKm').textContent='—';$('#packInfo').textContent=reason||'—';$('#packBar').style.width='0%';$('#cellAlert').textContent='—';$('#cells').innerHTML='';for(let i=0;i<14;i++){const el=document.createElement('div');el.className='cell';el.innerHTML=`<div class='n'>C${i+1}</div><div class='mv'>—</div><div class='miniBar'><i style='width:0%'></i></div>`;$('#cells').appendChild(el)}}
 function drawCells(values){$('#cells').innerHTML='';values.forEach((v,i)=>{const el=document.createElement('div');el.className='cell';el.innerHTML=`<div class='n'>C${i+1}</div><div class='mv'>${typeof v==='number'?v.toFixed(3):'—'}</div><div class='miniBar'><i style='width:${typeof v==='number'?Math.max(0,Math.min(100,((v-3)/(4.25-3))*100)):0}%'></i></div>`;$('#cells').appendChild(el)})}
-function parsePayload(view){const b=[];for(let i=0;i<view.byteLength;i++)b.push(view.getUint8(i));let soc=b.find(x=>x>=0&&x<=100);return{soc:typeof soc==='number'?soc:null,cells:b.slice(0,14).map(x=>x>0&&x<1000?x/100: null),raw:b}}
-async function connectBms(){setStatus('BMS: tap');try{if(!navigator.bluetooth){toast('Bluetooth non supportato');return}const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['battery_service','0000180f-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','0000ffe0-0000-1000-8000-00805f9b34fb','6e400001-b5a3-f393-e0a9-e50e24dcca9e']});state.bmsDevice=device;setStatus(`Connessione ${device.name||'BLE'}...`);const server=await device.gatt.connect();try{const svc=await server.getPrimaryService('battery_service');const ch=await svc.getCharacteristic('battery_level');const v=await ch.readValue();const soc=v.getUint8(0);$('#soc').textContent=soc;$('#packInfo').textContent='Battery Service';$('#packBar').style.width=soc+'%';$('#rangeKm').textContent=(soc*0.5).toFixed(1);$('#bmsHint').textContent='Battery Service trovato';setStatus('BMS letto')}catch{setStatus('Nessun Battery Service');$('#bmsHint').textContent='Nessun dato battery_service';renderBatteryNull('nessun dato') } }catch(e){setStatus('BMS annullato o bloccato');toast('Bluetooth bloccato/annullato')}}
+function parsePayload(view){const b=[];for(let i=0;i<view.byteLength;i++)b.push(view.getUint8(i));let soc=b.find(x=>x>=0&&x<=100);return{soc:typeof soc==='number'?soc:null,cells:b.slice(0,14).map(x=>x>0&&x<1000?x/100:null),raw:b}}
+
+async function connectBms(){setStatus('BMS: tap');try{if(!navigator.bluetooth){toast('Bluetooth non supportato');return}const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['battery_service','0000180f-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','0000ffe0-0000-1000-8000-00805f9b34fb','6e400001-b5a3-f393-e0a9-e50e24dcca9e']});state.bmsDevice=device;setStatus(`Connessione ${device.name||'BLE'}...`);const server=await device.gatt.connect();try{const svc=await server.getPrimaryService('battery_service');const ch=await svc.getCharacteristic('battery_level');const v=await ch.readValue();const soc=v.getUint8(0);$('#soc').textContent=soc;$('#packInfo').textContent='Battery Service';$('#packBar').style.width=soc+'%';$('#rangeKm').textContent=(soc*0.5).toFixed(1);$('#bmsHint').textContent='Battery Service trovato';setStatus('BMS letto')}catch{setStatus('Nessun Battery Service');$('#bmsHint').textContent='Nessun dato battery_service';renderBatteryNull('nessun dato')}}catch(e){setStatus('BMS annullato o bloccato');toast('Bluetooth bloccato/annullato')}}
+
 function startGps(){if(!navigator.geolocation){toast('GPS non supportato');return}if(state.gpsOn)return;state.gpsOn=true;setStatus('GPS attivo');$('#gpsQuickBtn').style.borderColor='var(--green)';state.gpsWatch=navigator.geolocation.watchPosition(async p=>{const c=p.coords;const cur={lat:c.latitude,lon:c.longitude};if(state.lastPos)state.distance+=H(state.lastPos,cur);state.lastPos=cur;if(c.speed!=null&&c.speed>=0)state.speed=c.speed*3.6;$('#speed').textContent=state.speed.toFixed(1);$('#distance').textContent=state.distance.toFixed(2);$('#odo').textContent=state.distance.toFixed(2);$('#avgSpeed').textContent=state.distance>0?((state.distance)/(Math.max(1,(Date.now()-state.tripStart)/3600000))).toFixed(1):'0.0';arcForSpeed(state.speed);await updateWeather(c.latitude,c.longitude)},e=>{setStatus('GPS bloccato: '+e.message);toast('GPS non disponibile');state.gpsOn=false;$('#gpsQuickBtn').style.borderColor='var(--line)'} ,{enableHighAccuracy:true,maximumAge:1000,timeout:12000})}
 function stopGps(){if(!state.gpsOn)return;navigator.geolocation.clearWatch(state.gpsWatch);state.gpsOn=false;$('#gpsQuickBtn').style.borderColor='var(--line)';setStatus('GPS spento')}
+
 function saveHist(){state.history.unshift({id:Date.now(),date:new Date().toISOString(),km:+state.distance.toFixed(2),avg:+($('#avgSpeed').textContent||0)});localStorage.setItem(store.k,JSON.stringify(state.history));toast('Salvato')}
 function openHistory(){const root=$('#overlayRoot');root.innerHTML='';const o=document.createElement('div');o.className='overlay';o.onclick=()=>root.innerHTML='';const m=document.createElement('div');m.className='modal';m.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><div class="label">Storico</div><button class="btn" id="closeH" type="button">CHIUDI</button></div><div style="margin-top:8px" class="mono">${state.history.length} viaggi</div><div id="histList" style="display:grid;gap:6px;margin-top:8px"></div>`;root.appendChild(o);root.appendChild(m);$('#closeH').onclick=()=>root.innerHTML='';const list=$('#histList');state.history.forEach(h=>{const d=document.createElement('div');d.className='card';d.style.padding='8px';d.innerHTML=`<div class="mono">${new Date(h.date).toLocaleString('it-IT')}</div><div class="mono">${h.km.toFixed(2)} km · ${h.avg.toFixed(1)} km/h</div>`;list.appendChild(d)})}
 function keepScreenOn(){if(!('wakeLock' in navigator)){toast('Wake Lock non supportato');return}if(state.wake){state.wake.release();state.wake=null;$('#wakeBtn').classList.remove('wakeOn');setStatus('Schermo normale')}else{navigator.wakeLock.request('screen').then(w=>{state.wake=w;$('#wakeBtn').classList.add('wakeOn');setStatus('Schermo acceso');w.addEventListener('release',()=>{$('#wakeBtn').classList.remove('wakeOn');state.wake=null})}).catch(()=>toast('Wake Lock non disponibile'))}}
-bindTap('#connectBtn2',connectBms);bindTap('#gpsQuickBtn',()=>state.gpsOn?stopGps():startGps());bindTap('#histBtn',openHistory);bindTap('#saveTripBtn',saveHist);bindTap('#clearTripBtn',()=>{state.distance=0;state.tripStart=Date.now();state.lastPos=null;state.speed=0;$('#speed').textContent='0.0';$('#distance').textContent='0.00';$('#odo').textContent='0.00';$('#avgSpeed').textContent='0.0';arcForSpeed(0);toast('Reset')});bindTap('#wakeBtn',keepScreenOn);
+
+bindTap('#connectBtn2',connectBms);
+bindTap('#gpsQuickBtn',()=>state.gpsOn?stopGps():startGps());
+bindTap('#histBtn',openHistory);
+bindTap('#saveTripBtn',saveHist);
+bindTap('#clearTripBtn',()=>{state.distance=0;state.tripStart=Date.now();state.lastPos=null;state.speed=0;$('#speed').textContent='0.0';$('#distance').textContent='0.00';$('#odo').textContent='0.00';$('#avgSpeed').textContent='0.0';arcForSpeed(0);toast('Reset')});
+bindTap('#wakeBtn',keepScreenOn);
+
 function start(){for(let i=0;i<14;i++){const el=document.createElement('div');el.className='cell';el.innerHTML=`<div class='n'>C${i+1}</div><div class='mv'>—</div><div class='miniBar'><i style='width:0%'></i></div>`;$('#cells').appendChild(el)}arcForSpeed(0);renderBatteryNull('premi BMS');setStatus('Pronto')}
 start();
 </script>
 </body>
 </html>
+  
