@@ -194,7 +194,7 @@ body{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 <div class="toastWrap" id="toastWrap"></div>
   <script>
 const $=s=>document.querySelector(s);
-const store={k:'ebikeAndroidDash_fixed'};
+const store={k:'ebikeAndroidDash_fixed_v2'};
 let state={speed:0,distance:0,tripStart:Date.now(),lastPos:null,wake:null,gpsWatch:null,gpsOn:false,history:JSON.parse(localStorage.getItem(store.k)||'[]'),bmsDevice:null};
 
 function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;$('#toastWrap').appendChild(e);setTimeout(()=>e.remove(),2200)}
@@ -236,4 +236,3 @@ start();
 </script>
 </body>
 </html>
-  
