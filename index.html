@@ -1962,6 +1962,7 @@ document.addEventListener('visibilitychange', async () => {
     }
     try { navTick(c); } catch (e) {}
     try { window.poiTick && poiTick(c); } catch (e) {}
+    try { window.recPoint && recPoint(c); } catch (e) {}
   };
   navigator.geolocation && navigator.geolocation.getCurrentPosition(p => { lastLL = [p.coords.latitude, p.coords.longitude]; marker.setLatLng(lastLL); map.setView(lastLL, 17); }, () => {}, { timeout: 8000 });
   addEventListener('resize', () => map.invalidateSize());
@@ -2315,28 +2316,116 @@ document.addEventListener('visibilitychange', async () => {
     };
   })();
 
-  // ═══ BUCHE AUTOMATICHE: l'accelerometro sente i sobbalzi forti e segna un ⚠️ sulla mappa ═══
+  // ═══ REGISTRAZIONE GIRO (energia + traccia GPS) e COSTO DEL GIRO ═══
   (function () {
-    const KEY = 'ebike-auto-buche', NAMES = ['SPENTE', 'BASSA', 'MEDIA', 'ALTA'], THR = [0, 20, 15, 11];
-    let lvl = parseInt(localStorage.getItem(KEY)); if (!(lvl >= 0 && lvl <= 3)) lvl = 2;
-    let base = 3, lastAuto = 0;
-    const bt = document.createElement('button'); bt.id = 'poi-auto'; bt.style.cssText = 'width:100%;margin-top:8px;padding:12px;font-size:.85rem;';
-    const lab = () => { bt.textContent = '📳 Buche automatiche: ' + NAMES[lvl]; };
-    lab();
-    bt.onclick = () => { lvl = (lvl + 1) % 4; localStorage.setItem(KEY, String(lvl)); lab(); };
-    $('poi-pick').insertBefore(bt, $('poi-cancel'));
-    addEventListener('devicemotion', e => {
-      if (!lvl || !lastLL || typeof state === 'undefined' || !(state.speed > 8)) return;
-      let a = e.acceleration, m;
-      if (a && a.x != null) m = Math.hypot(a.x, a.y, a.z);
-      else { a = e.accelerationIncludingGravity; if (!a || a.x == null) return; m = Math.abs(Math.hypot(a.x, a.y, a.z) - 9.81); }
-      base = base * 0.98 + m * 0.02;
-      const now = Date.now();
-      if (m > THR[lvl] && m > base * 2.5 && now - lastAuto > 15000) {
-        lastAuto = now;
-        if (!window.poiNear(lastLL[0], lastLL[1], '⚠️', 25)) { window.poiAdd(lastLL[0], lastLL[1], '⚠️'); toast('⚠️ Buca segnata'); }
+    const K = { price: 'ebike-prezzo-kwh', car: 'ebike-auto-costo-km', tracks: 'ebike-tracks' };
+    const num = v => parseFloat(String(v || '').replace(',', '.'));
+    const price = () => { const v = num(localStorage.getItem(K.price)); return v > 0 ? v : 0.28; };
+    const eur = (v, d) => v.toLocaleString('it-IT', { minimumFractionDigits: d || 2, maximumFractionDigits: d || 2 }) + ' €';
+    const kwh = v => v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kWh';
+    const rec = { wh: 0, mv: 0, mvB: 0, pts: [], last: null };
+    const reliable = () => rec.mv >= 30 && rec.mvB / rec.mv >= 0.9 && rec.wh > 0;
+    let lastDist = 0;
+
+    // tile "costo giro" nel riquadro Telefono/Totale (visibile solo con dati BMS affidabili)
+    const tile = document.createElement('div'); tile.className = 'trip-metric'; tile.style.gridColumn = '1/-1'; tile.style.display = 'none';
+    tile.innerHTML = '<div class="trip-metric-label">💶 Costo giro</div><div class="trip-metric-value" id="cost-live">—</div>';
+    $('extra-section').querySelector('.trip-grid').appendChild(tile);
+
+    setInterval(() => {
+      if (typeof state === 'undefined') return;
+      if (state.distance < lastDist - 1) { rec.wh = 0; rec.mv = 0; rec.mvB = 0; rec.pts = []; rec.last = null; }   // reset viaggio
+      lastDist = state.distance;
+      if (state.gpsActive) {
+        if (state.speed > 1) { rec.mv++; if (state.btConnected) rec.mvB++; }
+        if (state.btConnected && state.power > 0 && state.power < 5000) rec.wh += state.power / 3600;
       }
-    });
+      const ok = reliable(); tile.style.display = ok ? '' : 'none';
+      if (ok) $('cost-live').textContent = eur(rec.wh / 1000 * price());
+    }, 1000);
+
+    // traccia: punto solo se preciso e ad almeno 15 m dal precedente
+    window.recPoint = c => {
+      if (!(c.accuracy <= 40)) return;
+      if (rec.last && hv(rec.last[0], rec.last[1], c.latitude, c.longitude) < 15) return;
+      rec.last = [c.latitude, c.longitude];
+      rec.pts.push([+c.latitude.toFixed(5), +c.longitude.toFixed(5), Math.round((c.speed || 0) * 36) / 10]);
+      if (rec.pts.length > 4000) rec.pts = rec.pts.filter((_, i) => i % 2 === 0);
+    };
+
+    // semplificazione Douglas-Peucker fino a max punti
+    function simplify(pts, max) {
+      if (pts.length <= max) return pts;
+      const kx = 111320 * Math.cos(pts[0][0] * Math.PI / 180), ky = 110540, X = p => [p[1] * kx, p[0] * ky];
+      for (let tol = 4; ; tol *= 1.6) {
+        const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+        const st = [[0, pts.length - 1]];
+        while (st.length) {
+          const [a, b] = st.pop(); if (b <= a + 1) continue;
+          const A = X(pts[a]), B = X(pts[b]), dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1; let md = -1, mi = -1;
+          for (let i = a + 1; i < b; i++) { const P = X(pts[i]), d = Math.abs(dy * (P[0] - A[0]) - dx * (P[1] - A[1])) / L; if (d > md) { md = d; mi = i; } }
+          if (md > tol) { keep[mi] = 1; st.push([a, mi], [mi, b]); }
+        }
+        const out = pts.filter((_, i) => keep[i]);
+        if (out.length <= max || tol > 500) return out;
+      }
+    }
+
+    // estendo saveTrip: aggiunge energia (wh) e traccia (tid) al viaggio salvato dalla funzione esistente
+    const _save = window.saveTrip;
+    window.saveTrip = function () {
+      const before = localStorage.getItem('ebike-history'), ok = reliable(), wh = rec.wh, pts = rec.pts.slice();
+      const r = _save.apply(this, arguments);
+      try {
+        const after = localStorage.getItem('ebike-history'); if (after === before) return r;
+        const h = JSON.parse(after), t = h[0]; if (!t) return r;
+        if (ok) t.wh = wh;
+        if (pts.length > 1) {
+          const id = Date.now(); t.tid = id;
+          let tr = {}; try { tr = JSON.parse(localStorage.getItem(K.tracks)) || {}; } catch (e) {}
+          tr[id] = simplify(pts, 400);
+          const keep = new Set(h.map(x => String(x.tid))); Object.keys(tr).forEach(k => { if (!keep.has(k)) delete tr[k]; });
+          try { localStorage.setItem(K.tracks, JSON.stringify(tr)); } catch (e) { delete t.tid; }
+        }
+        localStorage.setItem('ebike-history', JSON.stringify(h));
+      } catch (e) {}
+      return r;
+    };
+
+    // estendo openHistory: costo per viaggio + riepilogo costi
+    const _open = window.openHistory;
+    window.openHistory = function () { _open.apply(this, arguments); try { decorate(); } catch (e) {} };
+    function decorate() {
+      const list = $('history-list'), h = JSON.parse(localStorage.getItem('ebike-history') || '[]');
+      if (!h.length || list.children.length < h.length + 1) return;
+      const P = price(), car = num(localStorage.getItem(K.car)) || 0, dk = t => parseFloat(t.distance) || 0;
+      h.forEach((t, i) => {
+        const d = document.createElement('div');
+        d.style.cssText = 'margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:6px;font-family:"Share Tech Mono",monospace;font-size:.85rem;';
+        if (t.wh > 0) { const c = t.wh / 1000 * P; d.innerHTML = '<span>⚡ ' + Math.round(t.wh) + ' Wh</span><span>💶 ' + eur(c) + '</span><span>' + (dk(t) > 0 ? eur(c / dk(t), 3) + '/km' : '') + '</span>'; }
+        else { d.style.color = 'var(--muted)'; d.textContent = 'Energia: dato non disponibile'; }
+        list.children[i + 1].appendChild(d);
+      });
+      const E = h.filter(t => t.wh > 0), tot = E.reduce((a, t) => a + t.wh, 0), km = E.reduce((a, t) => a + dk(t), 0), n = new Date();
+      const M = E.filter(t => { const q = String(t.date).split('/'); return +q[1] === n.getMonth() + 1 && +q[2] === n.getFullYear(); });
+      const mWh = M.reduce((a, t) => a + t.wh, 0), mKm = M.reduce((a, t) => a + dk(t), 0), cost = tot / 1000 * P;
+      const row = (l, v) => '<div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--muted)">' + l + '</span><b style="font-family:\'Share Tech Mono\',monospace;font-weight:400">' + v + '</b></div>';
+      const inp = (id, key, val, unit, ph) => '<label style="display:flex;align-items:center;gap:6px;flex:1;font-size:.8rem;color:var(--muted)">' + unit + '<input type="text" inputmode="decimal" id="' + id + '" value="' + val + '" placeholder="' + ph + '" style="width:70px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:.9rem" onchange="localStorage.setItem(\'' + key + '\',this.value);openHistory()"></label>';
+      let html = '<div style="font-size:.6rem;color:var(--muted);letter-spacing:2px;margin-bottom:8px">💶 COSTO DELL\'ENERGIA</div><div style="display:flex;gap:10px;margin-bottom:10px">' +
+        inp('cost-kwh', K.price, (localStorage.getItem(K.price) || '0,28'), '€/kWh', '0,28') + inp('cost-car', K.car, (localStorage.getItem(K.car) || ''), 'Auto €/km', 'opz.') + '</div>';
+      if (!E.length) html += '<div style="color:var(--muted)">Energia consumata: dato non disponibile (serve il BMS collegato durante il giro)</div>';
+      else {
+        html += row('Energia totale consumata', kwh(tot / 1000)) + row('Costo totale storico', eur(cost)) + row('Costo medio/km', km > 0 ? eur(cost / km, 3) : '—') + row('Costo medio per uscita', eur(cost / E.length)) +
+          '<div style="margin-top:8px;font-size:.6rem;color:var(--muted);letter-spacing:2px">QUESTO MESE</div>' +
+          (M.length ? row('Uscite · km', M.length + ' · ' + mKm.toFixed(1)) + row('Energia · costo', kwh(mWh / 1000) + ' · ' + eur(mWh / 1000 * P)) + row('Costo medio per uscita', eur(mWh / 1000 * P / M.length)) : '<div style="color:var(--muted)">Dato non disponibile</div>');
+        if (car > 0 && km > 0) html += '<div style="margin-top:8px;font-size:.6rem;color:var(--muted);letter-spacing:2px">CONFRONTO AUTO · ' + km.toFixed(1) + ' km</div>' +
+          row('E-bike', eur(cost)) + row('Auto', eur(km * car)) + row('RISPARMIO', eur(km * car - cost));
+        if (E.length < h.length) html += '<div style="margin-top:8px;font-size:.75rem;color:var(--muted)">Calcolato su ' + E.length + ' di ' + h.length + ' viaggi con dati energia.</div>';
+      }
+      const box = document.createElement('div');
+      box.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;color:var(--text);font-size:.9rem;line-height:1.6;';
+      box.innerHTML = html; list.insertBefore(box, list.children[1]);
+    }
   })();
 
   // batteria telefono
