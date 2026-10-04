@@ -666,10 +666,10 @@
     #trip-section, .quick-row { grid-column:auto; }
     #recenter { top:44px; }
   }
-  #nav-panel, #b2-panel { position:fixed; inset:0; left:64px; z-index:450; background:rgba(0,0,0,.88); display:none; flex-direction:column; padding:14px 12px; gap:10px; overflow-y:auto; }
-  #nav-panel .row, #b2-panel .row { display:flex; gap:8px; }
-  #nav-q, #b2-panel input { flex:1; min-width:0; background:var(--surface); color:var(--text); border:1.5px solid var(--accent); border-radius:12px; padding:14px; font-size:1.1rem; font-family:'Barlow Condensed',sans-serif; }
-  #nav-panel button, #b2-panel button { background:var(--surface2); color:var(--accent); border:1.5px solid var(--accent); border-radius:12px; padding:0 18px; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:.95rem; letter-spacing:1px; min-height:48px; }
+  #nav-panel, #b2-panel, #dest-panel, #garage-panel { position:fixed; inset:0; left:64px; z-index:450; background:rgba(0,0,0,.88); display:none; flex-direction:column; padding:14px 12px; gap:10px; overflow-y:auto; }
+  #nav-panel .row, #b2-panel .row, #dest-panel .row, #garage-panel .row { display:flex; gap:8px; }
+  #nav-q, #b2-panel input, #dest-panel input, #garage-panel input, #garage-panel select, #garage-panel textarea { flex:1; min-width:0; background:var(--surface); color:var(--text); border:1.5px solid var(--accent); border-radius:12px; padding:14px; font-size:1.1rem; font-family:'Barlow Condensed',sans-serif; }
+  #nav-panel button, #b2-panel button, #dest-panel button, #garage-panel button { background:var(--surface2); color:var(--accent); border:1.5px solid var(--accent); border-radius:12px; padding:0 18px; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:.95rem; letter-spacing:1px; min-height:48px; }
   .nav-res { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; color:var(--text); font-size:1rem; line-height:1.2; }
   #nav-banner { position:fixed; top:44px; left:130px; max-width:min(420px,calc(100vw - 150px)); z-index:130; background:var(--card); backdrop-filter:blur(8px); border:1px solid var(--accent); border-radius:16px; padding:8px 12px; display:none; }
   #nav-banner .m { display:flex; align-items:center; gap:10px; }
@@ -705,6 +705,26 @@
   #poi-pick button { background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:8px 4px; min-width:52px; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:.6rem; }
   #poi-pick button span { font-size:1.7rem; }
   #poi-cancel { width:100%; margin-top:8px; padding:12px; font-size:.9rem !important; }
+  /* heatmap */
+  body.heat-on #main-content, body.heat-on .speed-hero, body.heat-on #km-strip, body.heat-on #rain-chip, body.heat-on #recenter, body.heat-on #nav-banner, body.heat-on header { display:none !important; }
+  #heat-top, #heat-bot { position:fixed; left:72px; right:8px; z-index:140; display:none; background:var(--card); backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:14px; padding:8px 10px; color:var(--text); }
+  #heat-top { top:6px; } #heat-bot { bottom:8px; font-size:.85rem; line-height:1.5; max-height:42dvh; overflow-y:auto; }
+  body.heat-on #heat-top, body.heat-on #heat-bot { display:block; }
+  .hb { background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:7px 10px; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:.75rem; letter-spacing:.5px; margin:2px 2px 0 0; }
+  .hb.on { background:var(--accent); color:var(--bg); border-color:var(--accent); }
+  .hrow { display:flex; justify-content:space-between; gap:8px; } .hrow span:first-child { color:var(--muted); } .hrow b { font-family:'Share Tech Mono',monospace; font-weight:400; }
+  /* bussola */
+  #compass-section { order:3; padding:8px 10px; } #compass-section svg { width:78px; height:78px; flex:none; }
+  #compass-section .ct { font-family:'Share Tech Mono',monospace; font-size:1.25rem; color:var(--accent); white-space:nowrap; }
+  #compass-section .cs { font-size:.7rem; color:var(--muted); line-height:1.3; } #compass-section .cd { font-size:.8rem; color:var(--text); margin-top:3px; }
+  /* garage */
+  #garage-panel, #dest-panel { overflow-y:auto; }
+  .gsec { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; color:var(--text); font-size:.9rem; line-height:1.6; }
+  .gsec h4 { margin:0 0 6px; font-size:.65rem; letter-spacing:2px; color:var(--muted); font-weight:400; }
+  .gst { display:inline-block; padding:5px 10px; border-radius:10px; border:1px solid var(--border); margin:2px 4px 2px 0; font-size:.8rem; }
+  .gst.s0 { border-color:var(--accent2); } .gst.s1 { border-color:var(--warn); color:var(--warn); } .gst.s2 { border-color:var(--danger); color:var(--danger); }
+  #garage-panel label { display:block; font-size:.7rem; color:var(--muted); margin-top:6px; } #garage-panel input, #garage-panel select, #garage-panel textarea { width:100%; box-sizing:border-box; margin-top:2px; font-size:.95rem; padding:9px; }
+  #garage-panel .g2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -2349,7 +2369,7 @@ document.addEventListener('visibilitychange', async () => {
       if (!(c.accuracy <= 40)) return;
       if (rec.last && hv(rec.last[0], rec.last[1], c.latitude, c.longitude) < 15) return;
       rec.last = [c.latitude, c.longitude];
-      rec.pts.push([+c.latitude.toFixed(5), +c.longitude.toFixed(5), Math.round((c.speed || 0) * 36) / 10]);
+      rec.pts.push([+c.latitude.toFixed(5), +c.longitude.toFixed(5), Math.round((c.speed || 0) * 36) / 10, c.altitude != null ? Math.round(c.altitude) : null]);
       if (rec.pts.length > 4000) rec.pts = rec.pts.filter((_, i) => i % 2 === 0);
     };
 
@@ -2426,6 +2446,201 @@ document.addEventListener('visibilitychange', async () => {
       box.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;color:var(--text);font-size:.9rem;line-height:1.6;';
       box.innerHTML = html; list.insertBefore(box, list.children[1]);
     }
+  })();
+
+  // ═══ HEATMAP PERSONALE (sulla mappa Leaflet esistente, dalle tracce locali) ═══
+  (function () {
+    const TK = 'ebike-tracks', MODES = { p: 'PERCORSI', v: 'VELOCITÀ', c: 'CONSUMO', s: 'SALITE' }, FLT = { o: 'Oggi', w: '7 giorni', m: 'Mese', y: 'Anno', a: 'Tutto' };
+    let on = false, mode = 'p', flt = 'a'; const lg = L.layerGroup().addTo(map), cv = L.canvas({ padding: .5 });
+    const ld = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+    const top = document.createElement('div'); top.id = 'heat-top'; const bot = document.createElement('div'); bot.id = 'heat-bot';
+    document.body.appendChild(top); document.body.appendChild(bot);
+    const it = v => v.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    function pickTrips() {
+      const h = ld('ebike-history') || [], tr = ld(TK) || {}, s0 = new Date(); s0.setHours(0, 0, 0, 0);
+      const days = { o: 1, w: 7, m: 30, y: 365 }[flt], from = days ? s0.getTime() - (days - 1) * 864e5 : -Infinity;
+      return h.filter(t => { const q = String(t.date).split('/'); return new Date(+q[2], +q[1] - 1, +q[0]).getTime() >= from; }).map(t => ({ t, pts: tr[t.tid] || null }));
+    }
+    function render() {
+      lg.clearLayers(); const sel = pickTrips(), T = sel.filter(x => x.pts && x.pts.length > 1), km = sel.reduce((a, x) => a + (parseFloat(x.t.distance) || 0), 0);
+      top.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center"><div><b style="letter-spacing:2px;font-size:.8rem">HEATMAP PERSONALE</b><div style="font-family:\'Share Tech Mono\',monospace;font-size:.85rem;color:var(--accent)">' + sel.length + ' uscite · ' + km.toLocaleString('it-IT', { maximumFractionDigits: 0 }) + ' km</div></div><button class="hb" id="heat-x">✕</button></div>' +
+        Object.keys(MODES).map(k => '<button class="hb' + (k === mode ? ' on' : '') + '" data-m="' + k + '">' + MODES[k] + '</button>').join('') + '<br>' +
+        Object.keys(FLT).map(k => '<button class="hb' + (k === flt ? ' on' : '') + '" data-f="' + k + '">' + FLT[k] + '</button>').join('');
+      top.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; render(); });
+      top.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { flt = b.dataset.f; render(); });
+      $('heat-x').onclick = toggle;
+      if (!T.length) { bot.innerHTML = 'Nessuna traccia registrata per questo periodo. Le tracce si registrano durante i giri con il GPS acceso.'; return; }
+      const lat0 = T[0].pts[0][0], kx = 111320 * Math.cos(lat0 * Math.PI / 180), ky = 110540, key = (la, lo) => Math.round(la * ky / 25) + ',' + Math.round(lo * kx / 25);
+      const cnt = new Map();
+      T.forEach(x => { const set = new Set(), P = x.pts;
+        for (let i = 0; i < P.length - 1; i++) { const d = hv(P[i][0], P[i][1], P[i + 1][0], P[i + 1][1]), n = Math.max(1, Math.ceil(d / 12));
+          for (let k = 0; k <= n; k++) set.add(key(P[i][0] + (P[i + 1][0] - P[i][0]) * k / n, P[i][1] + (P[i + 1][1] - P[i][1]) * k / n)); }
+        x.cells = set; set.forEach(c => cnt.set(c, (cnt.get(c) || 0) + 1)); });
+      let maxN = 0, hotK = null; cnt.forEach((v, k) => { if (v > maxN) { maxN = v; hotK = k; } });
+      const thr = Math.max(2, Math.ceil(maxN / 2)); let freqKm = 0, drawn = 0, noData = 0; const bounds = [];
+      const palP = n => n >= 10 ? '#ff2d2d' : n >= 6 ? '#ff8a1f' : n >= 4 ? '#ffd23f' : n >= 3 ? '#37e08a' : n === 2 ? '#00c8ff' : '#3b6cff';
+      const palV = v => v < 8 ? '#3b6cff' : v < 15 ? '#00c8ff' : v < 20 ? '#37e08a' : v < 25 ? '#ffd23f' : '#ff2d2d';
+      const palC = w => w < 9 ? '#37e08a' : w < 13 ? '#ffd23f' : w < 17 ? '#ff8a1f' : '#ff2d2d';
+      const palS = g => g >= 8 ? '#ff2d2d' : g >= 5 ? '#ff8a1f' : g >= 2.5 ? '#ffd23f' : g <= -4 ? '#3b6cff' : '#6b7f95';
+      T.forEach(x => {
+        const P = x.pts, cum = [0]; for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + hv(P[i - 1][0], P[i - 1][1], P[i][0], P[i][1]));
+        P.forEach(q => bounds.push([q[0], q[1]]));
+        const wk = parseFloat(x.t.distance) > 0 && x.t.wh > 0 ? x.t.wh / parseFloat(x.t.distance) : null;
+        const col = i => {
+          const m = [(P[i][0] + P[i + 1][0]) / 2, (P[i][1] + P[i + 1][1]) / 2], n = cnt.get(key(m[0], m[1])) || 1;
+          if (n >= thr && maxN >= 2) freqKm += (cum[i + 1] - cum[i]) / 1000;
+          if (mode === 'p') return palP(n);
+          if (mode === 'v') return P[i][2] != null && P[i + 1][2] != null ? palV((P[i][2] + P[i + 1][2]) / 2) : null;
+          if (mode === 'c') return wk != null ? palC(wk) : null;
+          let k = i; while (k > 0 && cum[i + 1] - cum[k] < 50) k--;
+          const a1 = P[i + 1][3], a0 = P[k][3]; if (a1 == null || a0 == null || cum[i + 1] - cum[k] < 30) return null;
+          return palS((a1 - a0) / (cum[i + 1] - cum[k]) * 100);
+        };
+        let run = [[P[0][0], P[0][1]]], c0 = undefined, any = false;
+        const flush = () => { if (c0 && run.length > 1) { L.polyline(run, { renderer: cv, color: c0, weight: mode === 'p' ? 3 + Math.min(4, (mode === 'p' ? 1 : 0)) : 4, opacity: .85, lineCap: 'round' }).addTo(lg); any = true; } };
+        for (let i = 0; i < P.length - 1; i++) { const c = col(i); if (c0 === undefined) c0 = c; if (c !== c0) { flush(); run = [[P[i][0], P[i][1]]]; c0 = c; } run.push([P[i + 1][0], P[i + 1][1]]); }
+        flush(); if (any) drawn++; else noData++;
+      });
+      if (hotK) { const [a, b] = hotK.split(',').map(Number); L.marker([a * 25 / ky, b * 25 / kx], { interactive: false, icon: L.divIcon({ className: '', iconSize: [28, 28], iconAnchor: [14, 14], html: '<div style="font-size:1.5rem;filter:drop-shadow(0 0 3px #000)">🔥</div>' }) }).addTo(lg); hotK = [a * 25 / ky, b * 25 / kx]; }
+      if (bounds.length) map.fitBounds(bounds, { paddingTopLeft: [80, 90], paddingBottomRight: [20, 150] });
+      // statistiche
+      const durS = sel.reduce((a, x) => a + (x.t.duration || 0), 0), vm = durS > 0 ? sel.reduce((a, x) => a + (parseFloat(x.t.avgSpeed) || 0) * (x.t.duration || 0), 0) / durS : null;
+      const E = sel.filter(x => x.t.wh > 0), eKm = E.reduce((a, x) => a + (parseFloat(x.t.distance) || 0), 0), eWh = E.reduce((a, x) => a + x.t.wh, 0);
+      const hasAlt = T.some(x => x.pts.some(q => q[3] != null));
+      const row = (l, v) => '<div class="hrow"><span>' + l + '</span><b>' + v + '</b></div>';
+      const note = mode === 'c' ? 'Consumo: colore per viaggio (Wh/km medi). Viaggi senza dati BMS non disegnati: ' + noData : mode === 's' && !hasAlt ? 'Dato non disponibile: l\'altitudine viene registrata dai prossimi giri.' : mode === 'v' && noData ? 'Dato non disponibile per ' + noData + ' viaggi.' : '';
+      bot.innerHTML = row('Km totali', it(km) + ' km') + row('Km nelle zone più frequentate', maxN >= 2 ? it(freqKm) + ' km' : 'Dato non disponibile') +
+        row('Zona più percorsa', hotK && maxN >= 2 ? maxN + ' passaggi <button class="hb" id="heat-hot">📍 mostra</button>' : 'Dato non disponibile') +
+        row('Velocità media', vm ? it(vm) + ' km/h' : 'Dato non disponibile') + row('Consumo medio', eKm > 0 ? it(eWh / eKm) + ' Wh/km' : 'Dato non disponibile') + row('Uscite con traccia', T.length + ' di ' + sel.length) +
+        (note ? '<div style="color:var(--muted);font-size:.75rem;margin-top:4px">' + note + '</div>' : '');
+      if ($('heat-hot')) $('heat-hot').onclick = () => map.setView(hotK, 17);
+    }
+    function toggle() {
+      on = !on; document.body.classList.toggle('heat-on', on);
+      if (on) { pausedUntil = Infinity; render(); } else { lg.clearLayers(); pausedUntil = 0; if (lastLL) map.setView(lastLL, 17); }
+    }
+    const rail = document.querySelector('.bottom-bar > div:last-child'), b = document.createElement('button');
+    b.className = 'btn btn-app'; b.id = 'btn-heat'; b.style.cssText = 'flex-direction:column;line-height:1.1;border-color:var(--warn);';
+    b.innerHTML = '<span style="font-size:1.1rem">🔥</span><span style="font-size:.6rem">HEATMAP</span>';
+    rail.insertBefore(b, document.getElementById('btn-call')); b.onclick = toggle;
+  })();
+
+  // ═══ BUSSOLA INTELLIGENTE (GPS esistente; destinazioni a linea d'aria) ═══
+  (function () {
+    const DK = 'ebike-dest', SK = 'ebike-dest-sel', CARD = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'], ARR = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+    const ld = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+    const D = [{ id: 'home', n: '🏠 Casa' }, { id: 'work', n: '💼 Lavoro' }, { id: 'fav1', n: '⭐ Preferito 1' }, { id: 'fav2', n: '⭐ Preferito 2' }];
+    const store = () => Object.assign({}, ld(DK) || {});
+    const get = id => { if (id === 'home') { const h = ld('ebike-home'); return h ? { name: 'Casa', lat: h[0], lon: h[1] } : null; } const d = store()[id]; return d && d.lat != null ? d : null; };
+    const nameOf = (x) => { const d = store()[x.id]; return x.id === 'home' ? x.n : (d && d.name) || x.n; };
+    let sel = localStorage.getItem(SK) || 'home';
+    const brg = (a, b, c, d) => { const r = Math.PI / 180, y = Math.sin((d - b) * r) * Math.cos(c * r), x = Math.cos(a * r) * Math.sin(c * r) - Math.sin(a * r) * Math.cos(c * r) * Math.cos((d - b) * r); return (Math.atan2(y, x) / r + 360) % 360; };
+    const d8 = a => CARD[Math.round(a / 45) % 8], a8 = a => ARR[Math.round(a / 45) % 8];
+    const card = document.createElement('div'); card.className = 'section'; card.id = 'compass-section';
+    card.innerHTML = '<div style="display:flex;gap:10px;align-items:center"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="var(--border)" stroke-width="3"/><text x="50" y="22" text-anchor="middle" font-size="13" fill="var(--muted)">N</text><g id="cp-needle"><polygon points="50,18 58,52 50,46 42,52" fill="var(--accent)"/></g><g id="cp-dest" style="display:none"><circle cx="50" cy="9" r="6" fill="var(--accent2)"/></g></svg><div style="min-width:0"><div class="ct" id="cp-t">—</div><div class="cs" id="cp-s">—</div><div class="cd" id="cp-d">—</div></div></div>';
+    $('main-content').appendChild(card);
+    let devH = null; addEventListener('deviceorientationabsolute', e => { if (e.alpha != null) devH = (360 - e.alpha) % 360; }, true);
+    function tick() {
+      if (typeof state === 'undefined') return;
+      const c = state.lastPos, moving = state.speed > 2, gps = state.gpsActive; let h = null, src = '';
+      if (gps && c && c.heading != null && !isNaN(c.heading) && moving) { h = c.heading; src = 'GPS'; } else if (devH != null) { h = devH; src = 'sensore'; }
+      $('cp-t').textContent = h != null ? d8(h) + ' ' + Math.round(h) + '°' : '—';
+      $('cp-needle').setAttribute('transform', 'rotate(' + (h || 0) + ' 50 50)'); $('cp-needle').style.opacity = h != null ? 1 : .25;
+      const st = !gps ? 'GPS spento' : c && c.accuracy > 40 ? 'GPS: precisione bassa' : !moving ? 'GPS ok · ferma' : 'GPS ok';
+      $('cp-s').textContent = (state.speed ? state.speed.toFixed(0) : '0') + ' km/h · ' + st + (h == null ? ' · direzione non disponibile' : src === 'sensore' ? ' · sensore' : '');
+      const d = get(sel), x = D.find(q => q.id === sel);
+      if (!d) { $('cp-d').textContent = nameOf(x) + ': non impostato (tocca)'; $('cp-dest').style.display = 'none'; return; }
+      if (!lastLL) { $('cp-d').textContent = nameOf(x) + ': attendo la posizione'; $('cp-dest').style.display = 'none'; return; }
+      const m = hv(lastLL[0], lastLL[1], d.lat, d.lon), b = brg(lastLL[0], lastLL[1], d.lat, d.lon);
+      $('cp-dest').style.display = ''; $('cp-dest').setAttribute('transform', 'rotate(' + b + ' 50 50)');
+      $('cp-d').textContent = (d.name || nameOf(x)) + ' · ' + (m >= 1000 ? (m / 1000).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' km' : Math.round(m) + ' m') + ' · ' + a8(b) + ' ' + Math.round(b) + '°';
+    }
+    setInterval(tick, 1000); tick();
+    const panel = document.createElement('div'); panel.id = 'dest-panel'; document.body.appendChild(panel);
+    function draw() {
+      const S = store();
+      panel.innerHTML = '<div class="row"><b style="flex:1;font-size:1.1rem;color:var(--text)">🧭 Destinazioni (a linea d\'aria)</b><button id="de-x">✕</button></div>' +
+        D.map(x => { const d = get(x.id);
+          return '<div class="gsec">' + (x.id === 'home' ? '<b>🏠 Casa</b>' : '<input data-n="' + x.id + '" value="' + esc((S[x.id] && S[x.id].name) || x.n) + '">') +
+            '<div style="color:var(--muted);font-size:.8rem">' + (d ? d.lat.toFixed(5) + ', ' + d.lon.toFixed(5) : 'non impostato') + '</div>' +
+            '<div class="row" style="margin-top:6px"><button data-s="' + x.id + '" style="flex:1">SALVA QUI</button><button data-u="' + x.id + '" style="flex:1">' + (sel === x.id ? '✓ SELEZIONATA' : 'SELEZIONA') + '</button></div></div>'; }).join('') +
+        '<div style="font-size:.8rem;color:var(--muted)">Mostra distanza e direzione in linea retta, non un percorso stradale. Per il percorso usa 🔍.</div>';
+      $('de-x').onclick = () => { panel.style.display = 'none'; };
+      panel.querySelectorAll('[data-n]').forEach(i => i.onchange = () => { const s = store(); s[i.dataset.n] = Object.assign(s[i.dataset.n] || {}, { name: i.value }); localStorage.setItem(DK, JSON.stringify(s)); });
+      panel.querySelectorAll('[data-s]').forEach(b => b.onclick = () => {
+        if (!lastLL) { toast('📍 Attendo il GPS…'); return; } const id = b.dataset.s;
+        if (id === 'home') localStorage.setItem('ebike-home', JSON.stringify(lastLL.slice()));
+        else { const s = store(); s[id] = Object.assign(s[id] || {}, { name: (s[id] && s[id].name) || D.find(q => q.id === id).n, lat: lastLL[0], lon: lastLL[1] }); localStorage.setItem(DK, JSON.stringify(s)); }
+        toast('💾 Posizione salvata'); draw(); tick();
+      });
+      panel.querySelectorAll('[data-u]').forEach(b => b.onclick = () => { sel = b.dataset.u; localStorage.setItem(SK, sel); draw(); tick(); });
+    }
+    card.addEventListener('click', () => { draw(); panel.style.display = 'flex'; });
+  })();
+
+  // ═══ GARAGE ═══
+  (function () {
+    const GK = 'ebike-garage';
+    const CO = [['motore', 'Motore'], ['controller', 'Controller'], ['display', 'Display'], ['freni', 'Freni'], ['forcella', 'Forcella'], ['ammortizzatore', 'Ammortizzatore'], ['pneumatici', 'Pneumatici'], ['trasmissione', 'Trasmissione']];
+    const MT = ['Cambio pastiglie', 'Cambio catena', 'Cambio pneumatici', 'Revisione freni', 'Manutenzione motore', 'Manutenzione batteria', 'Altro'];
+    const ST = ['OK', 'Da controllare', 'Manutenzione necessaria'], SI = [['bat', '🔋 Batteria'], ['mot', '⚙️ Motore'], ['gom', '🛞 Pneumatici'], ['fre', '🛑 Freni']];
+    let g; try { g = JSON.parse(localStorage.getItem(GK)); } catch (e) {} g = Object.assign({ bike: {}, comps: {}, bat: {}, custom: [], st: {}, maint: [], next: {} }, g || {});
+    const save = () => { try { localStorage.setItem(GK, JSON.stringify(g)); } catch (e) { toast('⚠️ Spazio pieno'); } };
+    const odo = () => { const v = parseFloat($('odo-total').textContent); return isNaN(v) ? null : v; };
+    const fmtKm = v => v == null ? 'Dato non disponibile' : v.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' km';
+    const panel = document.createElement('div'); panel.id = 'garage-panel'; document.body.appendChild(panel);
+    let edit = false, addM = false;
+    const mState = () => { const o = odo(), n = g.next || {}; let s = null;
+      if (n.kmAt != null && o != null) s = o >= n.kmAt ? 2 : (n.kmAt - o) <= Math.max(50, 0) ? 1 : 0;
+      if (n.date) { const dd = (new Date(n.date) - Date.now()) / 864e5; const t = dd < 0 ? 2 : dd <= 7 ? 1 : 0; s = s == null ? t : Math.max(s, t); }
+      return s; };
+    const all = () => { const a = SI.map(([k]) => g.st[k] || 0), m = mState(); if (m != null) a.push(m); return Math.max(0, ...a); };
+    const inp = (p, l, v, t) => '<label>' + l + '<input data-p="' + p + '" type="' + (t || 'text') + '" value="' + esc(v == null ? '' : v) + '"></label>';
+    function draw() {
+      const b = g.bike, o = odo(), last = g.maint[0], h = JSON.parse(localStorage.getItem('ebike-history') || '[]'), ms = mState();
+      let html = '<div class="row"><b style="flex:1;font-size:1.1rem;color:var(--text)">🚲 GARAGE</b><button id="ga-x">✕</button></div>' +
+        '<div class="gsec"><div style="display:flex;gap:10px;align-items:center">' + (b.photo ? '<img src="' + b.photo + '" style="width:80px;height:60px;object-fit:cover;border-radius:8px">' : '') +
+        '<div><div style="font-size:1.1rem">🚲 ' + esc((b.name || 'MY E-BIKE').toUpperCase()) + '</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:1.4rem;color:var(--accent)">' + (o == null ? '—' : o.toLocaleString('it-IT', { maximumFractionDigits: 0 }) + ' km') + '</div>' +
+        '<div class="gst s' + all() + '">Stato: ' + ST[all()] + '</div></div></div><div class="row" style="margin-top:8px"><button id="ga-edit" style="flex:1">MODIFICA</button><button id="ga-add" style="flex:1">+ AGGIUNGI MANUTENZIONE</button></div></div>' +
+        '<div class="gsec"><h4>STATO</h4>' + SI.map(([k, l]) => '<span class="gst s' + (g.st[k] || 0) + '" data-st="' + k + '">' + l + ' · ' + ST[g.st[k] || 0] + '</span>').join('') +
+        '<span class="gst s' + (ms == null ? 0 : ms) + '">🔧 Manutenzione · ' + (ms == null ? 'non impostata' : ST[ms]) + '</span><div style="font-size:.75rem;color:var(--muted)">Tocca una voce per cambiarne lo stato.</div></div>' +
+        '<div class="gsec"><h4>CHILOMETRAGGIO</h4>' + [['Km totali', fmtKm(o)], ['Km ultima uscita', h[0] ? fmtKm(parseFloat(h[0].distance)) : 'Dato non disponibile'],
+          ['Km dall\'ultima manutenzione', last && o != null && last.km != null ? fmtKm(o - last.km) : 'Dato non disponibile'], ['Ultimo intervento', last ? esc(last.date + ' · ' + last.type) : 'Dato non disponibile']].map(r => '<div class="hrow"><span style="color:var(--muted)">' + r[0] + '</span><b style="font-weight:400">' + r[1] + '</b></div>').join('') + '</div>';
+      if (addM) html += '<div class="gsec"><h4>NUOVA MANUTENZIONE</h4><label>Tipo<select id="m-t">' + MT.map(x => '<option>' + x + '</option>').join('') + '</select></label>' +
+        '<div class="g2"><label>Data<input id="m-d" type="date" value="' + new Date().toISOString().slice(0, 10) + '"></label><label>Km<input id="m-k" type="number" inputmode="decimal" value="' + (o == null ? '' : o.toFixed(0)) + '"></label></div>' +
+        '<label>Note<input id="m-n"></label><div class="g2"><label>Prossima tra (km)<input id="m-nk" type="number" inputmode="decimal"></label><label>Prossima entro (data)<input id="m-nd" type="date"></label></div>' +
+        '<div class="row" style="margin-top:8px"><button id="m-ok" style="flex:1">SALVA</button><button id="m-no" style="flex:1">ANNULLA</button></div></div>';
+      html += '<div class="gsec"><h4>MANUTENZIONI</h4>' + (g.maint.length ? g.maint.map((m, i) => '<div class="hrow"><span style="color:var(--text)">' + esc(m.date + ' · ' + m.type) + (m.km != null ? ' · ' + m.km + ' km' : '') + (m.note ? '<br><small style="color:var(--muted)">' + esc(m.note) + '</small>' : '') + '</span><button data-dm="' + i + '" style="min-height:32px;padding:0 10px">🗑</button></div>').join('') : '<span style="color:var(--muted)">Nessun intervento registrato</span>') +
+        (g.next.kmAt != null || g.next.date ? '<div style="margin-top:6px;color:var(--accent)">Prossima: ' + (g.next.kmAt != null ? 'a ' + g.next.kmAt.toFixed(0) + ' km ' : '') + (g.next.date ? 'entro ' + g.next.date : '') + '</div>' : '') + '</div>';
+      if (edit) html += '<div class="gsec"><h4>IDENTITÀ BICI</h4>' + inp('bike.name', 'Nome', b.name) + '<div class="g2">' + inp('bike.brand', 'Marca', b.brand) + inp('bike.model', 'Modello', b.model) + inp('bike.year', 'Anno', b.year, 'number') + inp('bike.color', 'Colore', b.color) + '</div>' +
+        inp('bike.notes', 'Note', b.notes) + '<label>Foto<input id="ga-photo" type="file" accept="image/*"></label></div>' +
+        '<div class="gsec"><h4>COMPONENTI</h4>' + CO.map(([k, l]) => inp('comps.' + k, l, g.comps[k])).join('') +
+        '<h4 style="margin-top:10px">BATTERIA</h4><div class="g2">' + inp('bat.v', 'Tensione nominale (V)', g.bat.v, 'number') + inp('bat.ah', 'Capacità (Ah)', g.bat.ah, 'number') + inp('bat.wh', 'Energia (Wh)' + (g.bat.v && g.bat.ah && !g.bat.wh ? ' · ' + (g.bat.v * g.bat.ah).toFixed(0) : ''), g.bat.wh, 'number') + inp('bat.cells', 'Numero celle', g.bat.cells, 'number') + '</div>' + inp('bat.date', 'Data installazione', g.bat.date, 'date') +
+        '<h4 style="margin-top:10px">PERSONALIZZATI</h4>' + g.custom.map((c, i) => '<div class="row"><input data-p="custom.' + i + '.n" value="' + esc(c.n) + '" placeholder="Nome"><input data-p="custom.' + i + '.v" value="' + esc(c.v) + '" placeholder="Descrizione"><button data-dc="' + i + '" style="min-height:36px;padding:0 10px">🗑</button></div>').join('') +
+        '<button id="ga-ac" style="width:100%;margin-top:6px">+ COMPONENTE</button></div>';
+      panel.innerHTML = html;
+      $('ga-x').onclick = () => { panel.style.display = 'none'; };
+      $('ga-edit').onclick = () => { edit = !edit; draw(); }; $('ga-add').onclick = () => { addM = !addM; draw(); };
+      panel.querySelectorAll('[data-st]').forEach(e => e.onclick = () => { g.st[e.dataset.st] = ((g.st[e.dataset.st] || 0) + 1) % 3; save(); draw(); });
+      panel.querySelectorAll('[data-dm]').forEach(e => e.onclick = () => { if (confirm('Eliminare questo intervento?')) { g.maint.splice(+e.dataset.dm, 1); save(); draw(); } });
+      panel.querySelectorAll('[data-dc]').forEach(e => e.onclick = () => { g.custom.splice(+e.dataset.dc, 1); save(); draw(); });
+      panel.querySelectorAll('[data-p]').forEach(e => e.onchange = () => { const q = e.dataset.p.split('.'); let t = g; for (let i = 0; i < q.length - 1; i++) t = t[q[i]]; t[q[q.length - 1]] = e.type === 'number' && e.value !== '' ? parseFloat(e.value) : e.value; save(); if (q[0] === 'bike' && q[1] === 'name') draw(); });
+      if ($('ga-ac')) $('ga-ac').onclick = () => { g.custom.push({ n: '', v: '' }); save(); draw(); };
+      if ($('ga-photo')) $('ga-photo').onchange = e => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { const r = Math.min(1, 320 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = im.width * r; c.height = im.height * r; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); g.bike.photo = c.toDataURL('image/jpeg', .7); save(); draw(); URL.revokeObjectURL(im.src); }; im.src = URL.createObjectURL(f); };
+      if ($('m-no')) $('m-no').onclick = () => { addM = false; draw(); };
+      if ($('m-ok')) $('m-ok').onclick = () => {
+        const k = parseFloat($('m-k').value), nk = parseFloat($('m-nk').value);
+        g.maint.unshift({ type: $('m-t').value, date: $('m-d').value, km: isNaN(k) ? null : k, note: $('m-n').value });
+        g.maint.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+        if (!isNaN(nk) && nk > 0) g.next.kmAt = (isNaN(k) ? (odo() || 0) : k) + nk;
+        if ($('m-nd').value) g.next.date = $('m-nd').value;
+        save(); addM = false; draw(); toast('🔧 Manutenzione salvata');
+      };
+    }
+    const rail = document.querySelector('.bottom-bar > div:last-child'), b = document.createElement('button');
+    b.className = 'btn btn-app'; b.id = 'btn-garage'; b.style.cssText = 'flex-direction:column;line-height:1.1;border-color:var(--accent2);';
+    b.innerHTML = '<span style="font-size:1.1rem">🚲</span><span style="font-size:.6rem">GARAGE</span>';
+    rail.insertBefore(b, document.getElementById('btn-call')); b.onclick = () => { draw(); panel.style.display = 'flex'; };
   })();
 
   // batteria telefono
