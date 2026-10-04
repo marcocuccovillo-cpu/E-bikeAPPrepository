@@ -686,6 +686,8 @@
   body .speed-hero { background:transparent !important; border:0 !important; box-shadow:none !important; backdrop-filter:none !important; pointer-events:none; }
   body .speed-hero .speed-number, body .speed-hero .speed-unit { text-shadow:0 0 8px var(--bg), 0 0 16px var(--bg) !important; }
   body .speed-arc-wrap { filter:drop-shadow(0 0 4px var(--bg)); }
+  #speed-display::after { content:'km/h'; position:absolute; left:100%; bottom:3px; margin-left:6px; font-family:'Rajdhani',sans-serif; font-size:.95rem; font-weight:700; letter-spacing:1px; color:var(--muted); text-shadow:0 0 6px var(--bg), 0 0 12px var(--bg); }
+  body .speed-hero > .speed-unit { display:none; }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
