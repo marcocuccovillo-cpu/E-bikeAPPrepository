@@ -2279,6 +2279,33 @@ document.addEventListener('visibilitychange', async () => {
     b.innerHTML = '<span style="font-size:1.1rem">📌</span><span style="font-size:.6rem;">PUNTO</span>';
     rail.insertBefore(b, document.getElementById('btn-call'));
     b.onclick = () => { if (!lastLL) { toast('📍 Attendo il GPS…'); return; } open(lastLL.slice()); };
+    // ── buche automatiche: il sensore di movimento rileva i sobbalzi forti ──
+    const LV = ['OFF', 'BASSA', 'MEDIA', 'ALTA'], TH = [0, 20, 15, 11];
+    let lvl = parseInt(localStorage.getItem('ebike-autobump'));
+    if (isNaN(lvl)) lvl = 2;
+    const ab = document.createElement('button'); ab.id = 'poi-auto';
+    ab.style.cssText = 'width:100%;margin-top:8px;padding:10px;font-size:.8rem;';
+    const abLabel = () => { ab.textContent = '📳 Buche automatiche: ' + LV[lvl]; };
+    abLabel();
+    ab.onclick = () => { lvl = (lvl + 1) % 4; localStorage.setItem('ebike-autobump', lvl); abLabel(); };
+    pick.insertBefore(ab, $('poi-cancel'));
+    let base = 0, lastAuto = 0;
+    function addBump() {
+      if (!lastLL) return;
+      if (pois.some(q => q.t === '⚠️' && hv(lastLL[0], lastLL[1], q.lat, q.lon) < 30)) return;
+      const q = { id: Date.now(), lat: lastLL[0], lon: lastLL[1], t: '⚠️', auto: true };
+      pois.push(q); save(); draw(q); toast('⚠️ Buca segnata');
+    }
+    addEventListener('devicemotion', e => {
+      if (!lvl) return;
+      const a = e.acceleration; let m;
+      if (a && a.x != null) m = Math.hypot(a.x, a.y, a.z);
+      else { const g = e.accelerationIncludingGravity; if (!g || g.x == null) return; m = Math.abs(Math.hypot(g.x, g.y, g.z) - 9.81); }
+      base = base * 0.98 + m * 0.02;
+      if (m > TH[lvl] && m > base * 4 && (state.speed || 0) > 8 && Date.now() - lastAuto > 6000) { lastAuto = Date.now(); addBump(); }
+    });
+    window.poiAdd = (lat, lon, t) => { const p = { id: Date.now(), lat, lon, t }; pois.push(p); save(); draw(p); return p; };
+    window.poiNear = (lat, lon, t, m) => pois.some(x => x.t === t && hv(lat, lon, x.lat, x.lon) < m);
     window.poiTick = function (c) {
       pois.forEach(p => {
         const d = hv(c.latitude, c.longitude, p.lat, p.lon);
@@ -2286,6 +2313,30 @@ document.addEventListener('visibilitychange', async () => {
         else if (d > 250) delete alerted[p.id];
       });
     };
+  })();
+
+  // ═══ BUCHE AUTOMATICHE: l'accelerometro sente i sobbalzi forti e segna un ⚠️ sulla mappa ═══
+  (function () {
+    const KEY = 'ebike-auto-buche', NAMES = ['SPENTE', 'BASSA', 'MEDIA', 'ALTA'], THR = [0, 20, 15, 11];
+    let lvl = parseInt(localStorage.getItem(KEY)); if (!(lvl >= 0 && lvl <= 3)) lvl = 2;
+    let base = 3, lastAuto = 0;
+    const bt = document.createElement('button'); bt.id = 'poi-auto'; bt.style.cssText = 'width:100%;margin-top:8px;padding:12px;font-size:.85rem;';
+    const lab = () => { bt.textContent = '📳 Buche automatiche: ' + NAMES[lvl]; };
+    lab();
+    bt.onclick = () => { lvl = (lvl + 1) % 4; localStorage.setItem(KEY, String(lvl)); lab(); };
+    $('poi-pick').insertBefore(bt, $('poi-cancel'));
+    addEventListener('devicemotion', e => {
+      if (!lvl || !lastLL || typeof state === 'undefined' || !(state.speed > 8)) return;
+      let a = e.acceleration, m;
+      if (a && a.x != null) m = Math.hypot(a.x, a.y, a.z);
+      else { a = e.accelerationIncludingGravity; if (!a || a.x == null) return; m = Math.abs(Math.hypot(a.x, a.y, a.z) - 9.81); }
+      base = base * 0.98 + m * 0.02;
+      const now = Date.now();
+      if (m > THR[lvl] && m > base * 2.5 && now - lastAuto > 15000) {
+        lastAuto = now;
+        if (!window.poiNear(lastLL[0], lastLL[1], '⚠️', 25)) { window.poiAdd(lastLL[0], lastLL[1], '⚠️'); toast('⚠️ Buca segnata'); }
+      }
+    });
   })();
 
   // batteria telefono
