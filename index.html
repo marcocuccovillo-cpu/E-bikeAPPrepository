@@ -614,7 +614,7 @@
 
 
   /* ─── LAYOUT ORIZZONTALE STILE ANDROID AUTO ─── */
-  :root { --card: color-mix(in srgb, var(--surface) 82%, transparent); }
+  body { --card: color-mix(in srgb, var(--surface) 82%, transparent); }
   html, body { height:100%; overflow:hidden; overscroll-behavior:contain; }
   body { padding-bottom:0 !important; }
   #map { position:fixed; inset:0; z-index:0; background:var(--bg); }
@@ -679,6 +679,13 @@
   #nav-banner .s { margin-top:6px; padding-top:6px; border-top:1px solid var(--border); display:flex; align-items:center; gap:8px; font-size:.8rem; color:var(--muted); }
   #nav-banner .s span { flex:1; } #nav-banner .s b { color:var(--text); }
   #nav-banner button { background:transparent; border:1px solid var(--muted); color:var(--text); border-radius:8px; padding:6px 10px; font-size:.9rem; }
+  #rain-chip { position:fixed; top:6px; right:8px; z-index:130; background:var(--card); backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:14px; padding:6px 12px; display:none; font-size:.85rem; text-align:right; }
+  #rain-t { font-size:.6rem; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+  #btn-rain.on { box-shadow:0 0 0 2px var(--accent) inset; }
+  .trip-metric, .quick-cell { background:transparent !important; }
+  body .speed-hero { background:transparent !important; border:0 !important; box-shadow:none !important; backdrop-filter:none !important; pointer-events:none; }
+  body .speed-hero .speed-number, body .speed-hero .speed-unit { text-shadow:0 0 8px var(--bg), 0 0 16px var(--bg) !important; }
+  body .speed-arc-wrap { filter:drop-shadow(0 0 4px var(--bg)); }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -2022,6 +2029,55 @@ document.addEventListener('visibilitychange', async () => {
     else if (dStep < 150 && !nav.spoken[nav.si]) { nav.spoken[nav.si] = 1; say('Tra ' + fmtD(dStep) + ', ' + stepInfo(st)[1]); }
     renderNav(dStep, remM);
   }
+
+  // ═══ RADAR PIOGGIA (RainViewer) + previsione 2 ore (Open-Meteo) ═══
+  map.createPane('radar').style.zIndex = 250;
+  const rain = { on: false, layers: [], frames: [], i: 0, timer: null, chk: null, alerted: false };
+  const rb = document.createElement('button'); rb.className = 'btn btn-history'; rb.id = 'btn-rain'; rb.textContent = '🌧';
+  document.querySelector('.bottom-bar > div:last-child').prepend(rb);
+  const chip = document.createElement('div'); chip.id = 'rain-chip'; chip.innerHTML = '<div id="rain-f">…</div><div id="rain-t"></div>'; document.body.appendChild(chip);
+
+  function showFrame(i) {
+    rain.layers.forEach((l, k) => l.setOpacity(k === i ? .65 : 0));
+    const m = Math.round((rain.frames[i].time * 1000 - Date.now()) / 60000);
+    $('rain-t').textContent = 'radar ' + (m > 0 ? '+' : '') + m + ' min';
+  }
+  async function forecast() {
+    const c = map.getCenter(), pt = lastLL || [c.lat, c.lng];
+    try {
+      const j = await (await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + pt[0].toFixed(3) + '&longitude=' + pt[1].toFixed(3) + '&minutely_15=precipitation&forecast_minutely_15=8&timezone=auto')).json();
+      const t = j.minutely_15.time, v = j.minutely_15.precipitation, now = Date.now();
+      let k = -1;
+      for (let a = 0; a < t.length; a++) { if (new Date(t[a]).getTime() < now) continue; if (v[a] >= 0.1) { k = a; break; } }
+      let txt;
+      if (k < 0) { txt = '☀️ Niente pioggia nelle prossime 2 ore'; rain.alerted = false; }
+      else {
+        const m = Math.max(0, Math.round((new Date(t[k]).getTime() - 900000 - now) / 60000));
+        txt = m <= 5 ? '🌧 Piove ora' : '🌧 Pioggia tra ~' + m + ' min';
+        if (!rain.alerted && m <= 30) { rain.alerted = true; say(m <= 5 ? 'Sta piovendo' : 'Pioggia in arrivo tra circa ' + m + ' minuti'); }
+      }
+      $('rain-f').textContent = txt;
+    } catch (e) { $('rain-f').textContent = 'Previsione non disponibile'; }
+  }
+  async function radarOn() {
+    try {
+      const j = await (await fetch('https://api.rainviewer.com/public/weather-maps.json')).json();
+      rain.frames = ((j.radar && j.radar.past) || []).slice(-6).concat((j.radar && j.radar.nowcast) || []);
+      if (!rain.frames.length) throw 0;
+      rain.layers = rain.frames.map(f => L.tileLayer(j.host + f.path + '/256/{z}/{x}/{y}/2/1_1.png', { pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19 }).addTo(map));
+      rain.on = true; rain.i = 0;
+      const step = () => { showFrame(rain.i); const last = rain.i === rain.frames.length - 1; rain.i = last ? 0 : rain.i + 1; rain.timer = setTimeout(step, last ? 2000 : 600); };
+      step();
+      chip.style.display = 'block'; rb.classList.add('on'); $('attr').textContent = '© OpenStreetMap · RainViewer';
+      forecast(); rain.chk = setInterval(forecast, 600000);
+    } catch (e) { toast('⚠️ Radar non disponibile'); radarOff(); }
+  }
+  function radarOff() {
+    rain.on = false; clearTimeout(rain.timer); clearInterval(rain.chk);
+    rain.layers.forEach(l => map.removeLayer(l)); rain.layers = [];
+    chip.style.display = 'none'; rb.classList.remove('on'); $('attr').textContent = '© OpenStreetMap';
+  }
+  rb.onclick = () => rain.on ? radarOff() : radarOn();
 
   // batteria telefono
   if (navigator.getBattery) navigator.getBattery().then(b => {
