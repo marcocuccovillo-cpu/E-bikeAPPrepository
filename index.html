@@ -666,10 +666,10 @@
     #trip-section, .quick-row { grid-column:auto; }
     #recenter { top:44px; }
   }
-  #nav-panel { position:fixed; inset:0; left:64px; z-index:450; background:rgba(0,0,0,.88); display:none; flex-direction:column; padding:14px 12px; gap:10px; overflow-y:auto; }
-  #nav-panel .row { display:flex; gap:8px; }
-  #nav-q { flex:1; min-width:0; background:var(--surface); color:var(--text); border:1.5px solid var(--accent); border-radius:12px; padding:14px; font-size:1.1rem; font-family:'Barlow Condensed',sans-serif; }
-  #nav-panel button { background:var(--surface2); color:var(--accent); border:1.5px solid var(--accent); border-radius:12px; padding:0 18px; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:.95rem; letter-spacing:1px; min-height:48px; }
+  #nav-panel, #b2-panel { position:fixed; inset:0; left:64px; z-index:450; background:rgba(0,0,0,.88); display:none; flex-direction:column; padding:14px 12px; gap:10px; overflow-y:auto; }
+  #nav-panel .row, #b2-panel .row { display:flex; gap:8px; }
+  #nav-q, #b2-panel input { flex:1; min-width:0; background:var(--surface); color:var(--text); border:1.5px solid var(--accent); border-radius:12px; padding:14px; font-size:1.1rem; font-family:'Barlow Condensed',sans-serif; }
+  #nav-panel button, #b2-panel button { background:var(--surface2); color:var(--accent); border:1.5px solid var(--accent); border-radius:12px; padding:0 18px; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:.95rem; letter-spacing:1px; min-height:48px; }
   .nav-res { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; color:var(--text); font-size:1rem; line-height:1.2; }
   #nav-banner { position:fixed; top:44px; left:130px; max-width:min(420px,calc(100vw - 150px)); z-index:130; background:var(--card); backdrop-filter:blur(8px); border:1px solid var(--accent); border-radius:16px; padding:8px 12px; display:none; }
   #nav-banner .m { display:flex; align-items:center; gap:10px; }
@@ -690,6 +690,9 @@
   body .speed-hero > .speed-unit { display:none; }
   .btn-app { display:flex; align-items:center; justify-content:center; }
   @media (max-height:500px) { .bottom-bar .btn { min-height:36px; padding:4px 0; } }
+  #b2-panel .row { align-items:center; } #b2-panel label { flex:1; color:var(--text); font-size:1rem; line-height:1.1; }
+  #b2-panel input { flex:none; width:110px; } #b2-info { color:var(--accent); font-size:1.05rem; }
+  #batt-section { cursor:pointer; }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -2094,6 +2097,105 @@ document.addEventListener('visibilitychange', async () => {
       if (lastLL) go(lastLL[0], lastLL[1]);
       else navigator.geolocation.getCurrentPosition(q => go(q.coords.latitude, q.coords.longitude), () => toast('📍 Posizione non disponibile'), { timeout: 8000 });
     });
+  })();
+
+  // ═══ RAGGIO DI RITORNO: area che puoi raggiungere e da cui riesci ancora a tornare a casa ═══
+  (function () {
+    const rail = document.querySelector('.bottom-bar > div:last-child'), KEY = 'ebike-home';
+    const getHome = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } };
+    let on = localStorage.getItem('ebike-ret-on') === '1', poly = null, hm = null, last = 0;
+    const btn = document.createElement('button'); btn.className = 'btn btn-app'; btn.id = 'btn-ret';
+    btn.style.cssText = 'flex-direction:column;line-height:1.1;border-color:var(--accent);';
+    rail.insertBefore(btn, document.getElementById('btn-call'));
+    const label = (t, bad) => { btn.innerHTML = '<span style="font-size:1.1rem">⭕</span><span style="font-size:.6rem;' + (bad ? 'color:var(--danger);' : '') + '">' + t + '</span>'; };
+    label(on ? '…' : 'RITORNO');
+    const clear = () => { if (poly) { map.removeLayer(poly); poly = null; } };
+    const clearHome = () => { if (hm) { map.removeLayer(hm); hm = null; } };
+    function drawHome() {
+      clearHome(); const h = getHome();
+      if (h && on) hm = L.marker(h, { interactive: false, icon: L.divIcon({ className: '', iconSize: [28, 28], iconAnchor: [14, 14], html: '<div style="font-size:1.6rem;filter:drop-shadow(0 0 3px #000)">🏠</div>' }) }).addTo(map);
+    }
+    function update(force) {
+      if (!on) return;
+      const now = Date.now(); if (!force && now - last < 4000) return; last = now;
+      const h = getHome(), P = lastLL; if (!h || !P) return;
+      const rng = parseFloat((document.querySelector('.batt-range-km') || {}).textContent);
+      if (!(rng > 0)) { clear(); label('no dati', true); return; }
+      const S = rng * 1000 * 0.9 / 1.3;                       // riserva 10% e fattore strade 1.3
+      const lat0 = (P[0] + h[0]) / 2, lon0 = (P[1] + h[1]) / 2, ky = 110540, kx = 111320 * Math.cos(lat0 * Math.PI / 180);
+      const px = (P[1] - lon0) * kx, py = (P[0] - lat0) * ky, hx = (h[1] - lon0) * kx, hy = (h[0] - lat0) * ky;
+      const d = Math.hypot(px - hx, py - hy);
+      clear();
+      if (S <= d) { label('fuori!', true); return; }
+      const a = S / 2, c = d / 2, b = Math.sqrt(a * a - c * c), th = Math.atan2(py - hy, px - hx), pts = [];
+      for (let t = 0; t < 360; t += 5) { const x = a * Math.cos(t * Math.PI / 180), y = b * Math.sin(t * Math.PI / 180);
+        pts.push([lat0 + (x * Math.sin(th) + y * Math.cos(th)) / ky, lon0 + (x * Math.cos(th) - y * Math.sin(th)) / kx]); }
+      const col = document.body.classList.contains('sun-mode') ? '#0066cc' : '#00e5ff';
+      poly = L.polygon(pts, { color: col, weight: 3, dashArray: '8 6', fillOpacity: .1, interactive: false }).addTo(map);
+      label(((S - d) / 2000).toFixed(1) + ' km');
+    }
+    function setHome(ll) { localStorage.setItem(KEY, JSON.stringify(ll)); drawHome(); update(true); toast('🏠 Casa impostata'); }
+    btn.onclick = () => {
+      if (!getHome()) {
+        if (lastLL && confirm('Usare la posizione attuale come casa?')) localStorage.setItem(KEY, JSON.stringify(lastLL));
+        else { toast('📍 Serve il GPS: usa 🔍 → Imposta casa'); return; }
+      }
+      on = !on; localStorage.setItem('ebike-ret-on', on ? '1' : '0');
+      if (on) { drawHome(); label('…'); update(true); } else { clear(); clearHome(); label('RITORNO'); }
+    };
+    const hb = document.createElement('button'); hb.textContent = '🏠 IMPOSTA CASA QUI';
+    hb.onclick = () => { if (!lastLL) { toast('📍 Attendo il GPS…'); return; } setHome(lastLL.slice()); panel.style.display = 'none'; };
+    panel.insertBefore(hb, document.getElementById('nav-res'));
+    setInterval(() => update(false), 5000); setTimeout(() => { drawHome(); update(true); }, 3000);
+  })();
+
+  // ═══ BATTERIA 2 (senza Bluetooth): percentuale stimata dai km percorsi, salvata per le volte future ═══
+  (function () {
+    const KEY = 'ebike-b2', box = $('batt-content'), orig = box.innerHTML;
+    let cfg = { on: false, cap: 35, used: 0 };
+    try { cfg = Object.assign(cfg, JSON.parse(localStorage.getItem(KEY))); } catch (e) {}
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch (e) {} };
+    const rem = () => Math.max(0, cfg.cap - cfg.used), pct = () => Math.round(rem() / cfg.cap * 100);
+    function render() {
+      if (!cfg.on || state.btConnected) return;
+      const pc = pct(), cl = pc < 15 ? 'danger' : pc < 30 ? 'warn' : '';
+      state.soc = pc;
+      box.innerHTML = '<div class="batt-compact-row"><div class="batt-compact-left"><div class="batt-pct ' + cl + '">' + pc + '<span class="batt-pct-unit">%</span></div>' +
+        '<div class="batt-bar-track"><div class="batt-bar-fill ' + cl + '" style="width:' + pc + '%"></div></div>' +
+        '<div class="batt-sub">B2 · ' + cfg.used.toFixed(1) + ' / ' + cfg.cap + ' km usati</div></div>' +
+        '<div class="batt-compact-right"><div class="batt-range-km">' + rem().toFixed(1) + '<span class="batt-range-unit"> km</span></div>' +
+        '<div class="batt-range-label">AUTONOMIA EST.</div><div class="batt-range-note">stima batteria 2</div></div></div>';
+    }
+    const panel2 = document.createElement('div'); panel2.id = 'b2-panel';
+    panel2.innerHTML = '<div class="row"><b style="flex:1;font-size:1.1rem;color:var(--text)">🔋 Batteria 2 · senza Bluetooth</b><button id="b2-x">✕</button></div>' +
+      '<div class="row"><label>Autonomia a batteria piena (km)</label><input id="b2-cap" type="number" inputmode="decimal" min="1"></div>' +
+      '<div class="row"><label>Km già fatti dall\'ultima ricarica</label><input id="b2-used" type="number" inputmode="decimal" min="0"></div>' +
+      '<div class="row"><button id="b2-save" style="flex:1">SALVA</button><button id="b2-full" style="flex:1">RICARICATA 100%</button></div>' +
+      '<div class="row"><button id="b2-on" style="flex:1"></button></div><div id="b2-info"></div>' +
+      '<div style="font-size:.8rem;color:var(--muted)">La percentuale scende con i km percorsi col GPS acceso e resta salvata anche a app chiusa. Se colleghi il BMS, ha la precedenza.</div>';
+    document.body.appendChild(panel2);
+    const info = () => { $('b2-info').textContent = 'Stima: ' + pct() + '% · ' + rem().toFixed(1) + ' km rimasti'; $('b2-on').textContent = cfg.on ? '✓ STIMA BATTERIA 2 ATTIVA (tocca per spegnere)' : 'ATTIVA STIMA BATTERIA 2'; };
+    const open = () => { $('b2-cap').value = cfg.cap; $('b2-used').value = cfg.used.toFixed(1); info(); panel2.style.display = 'flex'; };
+    $('batt-section').addEventListener('click', open);
+    $('b2-x').onclick = () => { panel2.style.display = 'none'; };
+    $('b2-save').onclick = () => {
+      const c = parseFloat($('b2-cap').value.replace(',', '.')), u = parseFloat($('b2-used').value.replace(',', '.'));
+      if (!(c > 0) || !(u >= 0)) { toast('⚠️ Valori non validi'); return; }
+      cfg.cap = c; cfg.used = u; save(); render(); info(); toast('💾 Salvato');
+    };
+    $('b2-full').onclick = () => { cfg.used = 0; $('b2-used').value = '0.0'; save(); render(); info(); toast('🔋 Ricaricata: 100%'); };
+    $('b2-on').onclick = () => {
+      cfg.on = !cfg.on; save();
+      if (cfg.on) { $('b2-save').onclick(); } else if (!state.btConnected) { box.innerHTML = orig; state.soc = 0; }
+      info();
+    };
+    let lastD = state.distance;
+    setInterval(() => {
+      const d = state.distance, dd = d - lastD; lastD = d;
+      if (cfg.on && !state.btConnected && dd > 0 && dd < 500) { cfg.used += dd / 1000; save(); }
+      render();
+    }, 2000);
+    render();
   })();
 
   // batteria telefono
