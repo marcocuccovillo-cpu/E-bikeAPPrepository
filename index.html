@@ -725,6 +725,12 @@
   .gst.s0 { border-color:var(--accent2); } .gst.s1 { border-color:var(--warn); color:var(--warn); } .gst.s2 { border-color:var(--danger); color:var(--danger); }
   #garage-panel label { display:block; font-size:.7rem; color:var(--muted); margin-top:6px; } #garage-panel input, #garage-panel select, #garage-panel textarea { width:100%; box-sizing:border-box; margin-top:2px; font-size:.95rem; padding:9px; }
   #garage-panel .g2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  /* bussola in alto a sinistra */
+  #compass-section { position:fixed !important; top:44px; left:72px; width:165px; margin:0 !important; padding:6px 8px !important; z-index:60; }
+  #compass-section > div { gap:8px !important; } #compass-section svg { width:60px; height:60px; }
+  #compass-section .ct { font-size:1.05rem; } #compass-section .cs { font-size:.58rem; } #compass-section .cd { font-size:.68rem; margin-top:2px; }
+  @media (orientation:landscape) { #nav-banner { left:245px; max-width:min(420px,calc(100vw - 480px)); } #recenter { left:245px; top:44px; } }
+  @media (orientation:portrait) { #nav-banner { top:130px; left:72px; right:8px; max-width:none; } #recenter { left:auto; right:8px; top:96px; } }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
