@@ -693,6 +693,7 @@
   #b2-panel .row { align-items:center; } #b2-panel label { flex:1; color:var(--text); font-size:1rem; line-height:1.1; }
   #b2-panel input { flex:none; width:110px; } #b2-info { color:var(--accent); font-size:1.05rem; }
   #batt-section { cursor:pointer; }
+  .b2-link { margin-top:8px; font-size:.8rem; letter-spacing:.5px; color:var(--accent); }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -813,7 +814,7 @@
     <span id="batt-updated" style="font-size:0.65rem;color:var(--muted);">—</span>
   </div>
   <div id="batt-content">
-    <div class="no-data">Connetti il BMS via Bluetooth</div>
+    <div class="no-data">Connetti il BMS via Bluetooth<div class="b2-link">oppure <u>tocca qui per simulare una batteria</u></div></div>
   </div>
 </div>
 
@@ -2196,6 +2197,21 @@ document.addEventListener('visibilitychange', async () => {
       render();
     }, 2000);
     render();
+  })();
+
+  // ═══ TORNA A CASA: percorso verso la casa salvata ═══
+  (function () {
+    const rail = document.querySelector('.bottom-bar > div:last-child');
+    const b = document.createElement('button'); b.className = 'btn btn-app'; b.id = 'btn-home';
+    b.style.cssText = 'flex-direction:column;line-height:1.1;border-color:var(--accent2);';
+    b.innerHTML = '<span style="font-size:1.1rem">🏠</span><span style="font-size:.6rem;">CASA</span>';
+    rail.insertBefore(b, document.getElementById('btn-call'));
+    b.onclick = () => {
+      let h = null; try { h = JSON.parse(localStorage.getItem('ebike-home')); } catch (e) {}
+      if (!h) { toast('🏠 Imposta casa: 🔍 → Imposta casa qui'); return; }
+      if (lastLL && hv(lastLL[0], lastLL[1], h[0], h[1]) < 60) { toast('🏠 Sei già a casa'); return; }
+      routeTo({ lat: h[0], lon: h[1], name: 'Casa' });
+    };
   })();
 
   // batteria telefono
