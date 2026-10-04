@@ -624,10 +624,6 @@
   .header-right { background:var(--card); padding:5px 12px; border-radius:16px; border:1px solid var(--border); }
   /* barra laterale */
   .bottom-bar { top:0 !important; bottom:0 !important; left:0 !important; right:auto !important; width:64px; padding:6px 5px !important; flex-direction:column; border-top:0 !important; border-right:1px solid var(--border); overflow-y:auto; z-index:200; scrollbar-width:none; }
-  .bottom-bar > div:first-child { flex-direction:column !important; gap:6px; padding:0 0 8px !important; }
-  .bottom-bar > div:first-child a { flex:none !important; }
-  .bottom-bar > div:first-child a:nth-child(2), .bottom-bar > div:first-child span { display:none !important; }
-  .bottom-bar > div:first-child a > div { width:38px !important; height:38px !important; }
   .bottom-bar > div:last-child { flex-direction:column !important; margin-top:4px !important; gap:5px !important; }
   .bottom-bar .btn { flex:none !important; width:100%; min-height:42px; padding:8px 0; font-size:.68rem; letter-spacing:0; }
   /* widget a destra */
@@ -645,6 +641,31 @@
   #recenter { position:fixed; left:72px; top:40px; z-index:60; background:var(--card); color:var(--accent); border:1px solid var(--border); border-radius:12px; padding:8px 12px; font-size:1rem; display:none; }
   #attr { position:fixed; bottom:2px; left:50%; transform:translateX(-50%); font-size:.55rem; opacity:.6; z-index:5; color:var(--text); }
   #odo-tile { cursor:pointer; }
+  body:not(.sun-mode) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.95) contrast(.9) saturate(.7); }
+  #history-modal { left:64px !important; z-index:400 !important; }
+  .section, .quick-row { min-width:0; }
+  #batt-content .batt-compact-row { gap:8px; padding:8px 10px !important; }
+  #batt-content .batt-pct { font-size:clamp(1.8rem,5vw,2.5rem) !important; }
+  #batt-content .batt-range-km { font-size:clamp(1.5rem,4.4vw,2.1rem) !important; white-space:nowrap; }
+  #batt-content .batt-range-label, #batt-content .batt-sub, #batt-content .batt-range-note { font-size:.55rem !important; letter-spacing:.5px !important; white-space:nowrap; }
+  #weather-section > div { padding:8px 10px !important; gap:6px; }
+  #weather-section > div > div:first-child { min-width:0; gap:6px !important; }
+  #weather-icon { font-size:1.4rem !important; }
+  #weather-temp { font-size:1.05rem !important; white-space:nowrap; }
+  #weather-desc { font-size:.55rem !important; }
+  #weather-wind, #weather-humid { font-size:.8rem !important; white-space:nowrap; }
+  .trip-grid { display:grid !important; grid-template-columns:1fr 1fr; }
+  .trip-metric { padding:8px 10px !important; min-width:0; }
+  .trip-metric-value { font-size:1rem !important; white-space:nowrap; }
+  .quick-value { font-size:1.2rem !important; }
+  @media (orientation:portrait) {
+    #main-content { top:auto; left:72px; width:auto; max-height:56dvh; display:grid; grid-template-columns:1fr 1fr; align-content:start; }
+    body .speed-hero { position:relative; left:auto; bottom:auto; width:auto; grid-column:1/-1; order:0; }
+    body .speed-arc-wrap { margin:0 auto; }
+    #batt-section { grid-column:1/-1; }
+    #trip-section, .quick-row { grid-column:auto; }
+    #recenter { top:44px; }
+  }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -653,7 +674,7 @@
 
 <div id="map"></div>
 <button id="recenter">⌖</button>
-<div id="attr">© OpenStreetMap © CARTO</div>
+<div id="attr">© OpenStreetMap</div>
 
 <header>
   <h1>⚡ VoltPilot</h1>
@@ -798,25 +819,6 @@
 </div><!-- end main-content -->
 
 <div class="bottom-bar">
-  <!-- APP SHORTCUTS -->
-  <div style="display:flex;flex-direction:row;justify-content:space-around;align-items:center;padding:6px 0 8px;border-bottom:1px solid var(--border);">
-    <a href="tel:" style="display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;flex:1;">
-      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#34c759,#2da44e);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">📞</div>
-      <span style="font-size:0.58rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Chiama</span>
-    </a>
-    <a href="#" onclick="openMaps();return false;" style="display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;flex:1;">
-      <div style="width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;">
-        <svg viewBox="0 0 24 24" width="28" height="28"><path fill="#EA4335" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle fill="#fff" cx="12" cy="9" r="2.5"/></svg>
-      </div>
-      <span style="font-size:0.58rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Maps</span>
-    </a>
-    <a href="#" onclick="openSpotify();return false;" style="display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;flex:1;">
-      <div style="width:44px;height:44px;border-radius:12px;background:#191414;display:flex;align-items:center;justify-content:center;">
-        <svg viewBox="0 0 24 24" fill="#1DB954" width="26" height="26"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-      </div>
-      <span style="font-size:0.58rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Spotify</span>
-    </a>
-  </div>
   <!-- MAIN CONTROLS -->
   <div style="display:flex;flex-direction:row;gap:5px;margin-top:8px;">
     <button class="btn btn-bt" id="btn-bt" onclick="toggleBluetooth()" style="flex:1.8;">🔵 BMS</button>
@@ -1898,12 +1900,11 @@ document.addEventListener('visibilitychange', async () => {
 // ═══ MAPPA ONLINE (Leaflet) a schermo intero, segue il GPS ═══
 (function () {
   const $ = id => document.getElementById(id);
+  document.body.appendChild($('history-modal'));
   if (!window.L) { $('attr').textContent = 'Mappa non disponibile (serve rete)'; return; }
   const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([44.4949, 11.3426], 16);
-  const T = { dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' };
-  let layer, pausedUntil = 0, lastLL = null;
-  function setTiles() { if (layer) map.removeLayer(layer); layer = L.tileLayer(document.body.classList.contains('sun-mode') ? T.light : T.dark, { maxZoom: 19, subdomains: 'abcd' }).addTo(map); }
-  setTiles(); new MutationObserver(setTiles).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  let pausedUntil = 0, lastLL = null;
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
   const icon = L.divIcon({ className: '', iconSize: [44, 44], iconAnchor: [22, 22], html: '<div class="me"><svg viewBox="0 0 40 40" width="44" height="44"><path d="M20 3 L33 35 L20 28 L7 35 Z" fill="#00e5ff" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg></div>' });
   const marker = L.marker([44.4949, 11.3426], { icon, interactive: false }).addTo(map);
