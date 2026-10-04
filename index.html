@@ -688,6 +688,8 @@
   body .speed-arc-wrap { filter:drop-shadow(0 0 4px var(--bg)); }
   #speed-display::after { content:'km/h'; position:absolute; left:100%; bottom:3px; margin-left:6px; font-family:'Rajdhani',sans-serif; font-size:.95rem; font-weight:700; letter-spacing:1px; color:var(--muted); text-shadow:0 0 6px var(--bg), 0 0 12px var(--bg); }
   body .speed-hero > .speed-unit { display:none; }
+  .btn-app { display:flex; align-items:center; justify-content:center; }
+  @media (max-height:500px) { .bottom-bar .btn { min-height:36px; padding:4px 0; } }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -2080,6 +2082,19 @@ document.addEventListener('visibilitychange', async () => {
     chip.style.display = 'none'; rb.classList.remove('on'); $('attr').textContent = '© OpenStreetMap';
   }
   rb.onclick = () => rain.on ? radarOff() : radarOn();
+
+  // ═══ SCORCIATOIE: telefono, Spotify, posizione su WhatsApp ═══
+  (function () {
+    const rail = document.querySelector('.bottom-bar > div:last-child');
+    const mk = (id, html, border, fn) => { const b = document.createElement('button'); b.className = 'btn btn-app'; b.id = id; b.innerHTML = html; b.style.borderColor = border; b.onclick = fn; rail.appendChild(b); };
+    mk('btn-call', '<span style="font-size:1.2rem">📞</span>', '#34c759', () => { location.href = 'tel:'; });
+    mk('btn-spot', '<svg viewBox="0 0 24 24" width="24" height="24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>', '#1DB954', () => openSpotify());
+    mk('btn-wa', '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="#25D366" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/><path fill="#fff" d="M8.5 7.5c-.3 0-.6.2-.8.6-.5 1-.1 2.3.9 3.6 1.2 1.6 2.9 2.7 4.5 2.9.7.1 1.7-.3 2-1 .1-.3.1-.5 0-.6l-1.6-.8c-.2-.1-.4 0-.5.1l-.6.7c-.1.1-.3.1-.4 0-1-.5-1.8-1.3-2.3-2.2-.1-.2 0-.3.1-.4l.4-.5c.1-.2.1-.3 0-.5l-.7-1.5c-.1-.2-.3-.3-.5-.3z"/></svg>', '#25D366', () => {
+      const go = (la, lo) => { const t = '📍 Sono qui: https://www.google.com/maps?q=' + la.toFixed(5) + ',' + lo.toFixed(5); window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank'); };
+      if (lastLL) go(lastLL[0], lastLL[1]);
+      else navigator.geolocation.getCurrentPosition(q => go(q.coords.latitude, q.coords.longitude), () => toast('📍 Posizione non disponibile'), { timeout: 8000 });
+    });
+  })();
 
   // batteria telefono
   if (navigator.getBattery) navigator.getBattery().then(b => {
