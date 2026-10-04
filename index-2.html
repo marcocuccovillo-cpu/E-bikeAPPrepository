@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>VoltPilot</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="E-Bike">
+<meta name="theme-color" content="#0a0c0f">
+<meta name="description" content="Dashboard GPS e BMS per e-bike">
+<link rel="manifest" href="#" id="pwa-manifest">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
+<!-- PWA: usa Chrome > Aggiungi a schermata Home -->
+<meta name="theme-color" content="#0a0c0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="E-Bike">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0c0f'/><text y='.9em' font-size='80'>⚡</text></svg>">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #181c22;
+    --border: #1e2530;
+    --accent: #00e5ff;
+    --accent2: #39ff14;
+    --warn: #ff9500;
+    --danger: #ff3b30;
+    --text: #e8edf5;
+    --muted: #4a5568;
+    --cell-ok: #00e5ff;
+    --cell-warn: #ff9500;
+  }
+
+  /* ─── SUN MODE ─── */
+  body.sun-mode {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8edf5;
+    --border: #c5cfe0;
+    --accent: #0066cc;
+    --accent2: #1a8a00;
+    --warn: #cc5500;
+    --danger: #cc0000;
+    --text: #0a0c0f;
+    --muted: #4a5568;
+    --cell-ok: #0066cc;
+    --cell-warn: #cc5500;
+  }
+  body.sun-mode header {
+    background: #0066cc;
+    border-bottom: 2px solid #004a99;
+  }
+  body.sun-mode header h1 { color: #ffffff; }
+  body.sun-mode .header-right { color: #cce4ff; }
+  body.sun-mode .speed-hero {
+    background: radial-gradient(ellipse at 50% 0%, #cce4ff 0%, #f0f4f8 70%);
+  }
+  body.sun-mode .speed-number { color: #0066cc; text-shadow: none; font-weight: 900; }
+  body.sun-mode .speed-unit { color: #004a99; font-weight: 700; }
+  body.sun-mode .quick-cell { background: #ffffff; }
+  body.sun-mode .quick-label { color: #4a5568; font-weight: 700; }
+  body.sun-mode .quick-value { color: #0a0c0f; font-weight: 700; font-size: 1.4rem; }
+  body.sun-mode .section { border: 2px solid #c5cfe0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  body.sun-mode .section-title { color: #0a0c0f; font-size: 0.85rem; font-weight: 700; }
+  body.sun-mode .trip-metric-label { color: #4a5568; font-weight: 700; }
+  body.sun-mode .trip-metric-value { color: #0a0c0f; font-size: 1.6rem; font-weight: 700; }
+  body.sun-mode .batt-pct { color: #1a8a00; font-weight: 900; }
+  body.sun-mode .batt-pct.warn { color: #cc5500; }
+  body.sun-mode .batt-pct.danger { color: #cc0000; }
+  body.sun-mode .batt-range-km { color: #0066cc; font-weight: 900; }
+  body.sun-mode .batt-sub { color: #4a5568; font-weight: 600; }
+  body.sun-mode .batt-range-label { color: #4a5568; font-weight: 700; }
+  body.sun-mode .batt-range-note { color: #666; }
+  body.sun-mode .cell-v { color: #0066cc; font-weight: 700; }
+  body.sun-mode .bottom-bar { background: #ffffff; border-top: 2px solid #c5cfe0; }
+  body.sun-mode .btn-bt { border-color: #0066cc; color: #0066cc; font-weight: 700; }
+  body.sun-mode .btn-bt.connected { background: rgba(0,102,204,0.1); }
+  body.sun-mode .btn-gps { border-color: #1a8a00; color: #1a8a00; font-weight: 700; }
+  body.sun-mode .btn-gps.active { background: rgba(26,138,0,0.1); }
+  body.sun-mode .btn-reset { border-color: #4a5568; color: #4a5568; font-weight: 700; }
+  body.sun-mode .btn-wake { border-color: #4a5568; color: #4a5568; font-weight: 700; }
+  body.sun-mode .btn-wake.active { border-color: #cc5500; color: #cc5500; background: rgba(204,85,0,0.1); }
+  body.sun-mode .no-data { color: #4a5568; font-weight: 600; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    padding-bottom: 150px;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+    margin-right: 6px;
+    transition: background 0.3s;
+  }
+  .status-dot.connected { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+  .status-dot.searching { background: var(--warn); animation: pulse 1s infinite; }
+  .header-right { display: flex; align-items: center; gap: 10px; font-size: 0.75rem; color: var(--muted); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ─── MAIN SPEED WIDGET ─── */
+  .speed-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 16px 10px;
+    background: radial-gradient(ellipse at 50% 0%, #001a2e 0%, var(--bg) 70%);
+    position: relative;
+  }
+  .speed-arc-wrap {
+    position: relative;
+    width: 190px;
+    height: 110px;
+    overflow: hidden;
+    margin-bottom: -10px;
+  }
+  .speed-arc-wrap svg { width: 190px; height: 190px; position: absolute; top: 0; left: 0; }
+  .speed-number {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 3rem;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,229,255,0.5);
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .speed-unit {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.85rem;
+    color: var(--muted);
+    letter-spacing: 3px;
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+
+  /* ─── QUICK STATS ROW ─── */
+  .quick-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin: 0;
+  }
+  .quick-cell {
+    background: var(--surface);
+    padding: 14px 8px;
+    text-align: center;
+  }
+  .quick-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .quick-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+  .quick-value span { font-size: 0.7rem; color: var(--muted); }
+
+  /* ─── SECTION ─── */
+  .section {
+    margin: 6px 10px 0;
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* ─── BATTERY SECTION ─── */
+  .battery-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px;
+  }
+  .battery-icon-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .battery-icon {
+    width: 60px; height: 30px;
+    border: 2.5px solid var(--accent);
+    border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+  }
+  .battery-icon::after {
+    content: '';
+    position: absolute;
+    right: -7px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 5px; height: 12px;
+    background: var(--accent);
+    border-radius: 0 3px 3px 0;
+  }
+  .battery-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--accent2);
+    transition: width 0.5s ease;
+    border-radius: 2px;
+  }
+  .battery-fill.warn { background: var(--warn); }
+  .battery-fill.danger { background: var(--danger); }
+  .battery-stats { flex: 1; }
+  .batt-pct {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 2.2rem;
+    color: var(--accent2);
+    line-height: 1;
+  }
+  .batt-pct.warn { color: var(--warn); }
+  .batt-pct.danger { color: var(--danger); }
+  .batt-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+  .battery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+  }
+  .batt-metric {
+    background: var(--surface2);
+    padding: 12px 14px;
+  }
+  .batt-metric-label { font-size: 0.65rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .batt-metric-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.3rem;
+    margin-top: 2px;
+  }
+  .batt-metric-value.green { color: var(--accent2); }
+  .batt-metric-value.cyan { color: var(--accent); }
+  .batt-metric-value.orange { color: var(--warn); }
+
+  /* ─── RANGE ESTIMATE ─── */
+  .range-bar-wrap { padding: 14px 16px; }
+  .range-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .range-km {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.6rem;
+    color: var(--accent);
+  }
+  .range-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .range-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  /* ─── CELLS GRID ─── */
+  .cells-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    padding: 10px;
+  }
+  .cell-block {
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 8px 4px;
+    text-align: center;
+    border: 1px solid var(--border);
+    transition: border-color 0.3s;
+  }
+  .cell-block.active { border-color: var(--accent); }
+  .cell-block.warn { border-color: var(--warn); }
+  .cell-num { font-size: 0.55rem; color: var(--muted); }
+  .cell-v {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--cell-ok);
+    margin-top: 2px;
+  }
+  .cell-v.warn { color: var(--cell-warn); }
+  .cell-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .cell-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ─── TRIP ─── */
+  .trip-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--border);
+  }
+  .trip-metric {
+    background: var(--surface2);
+    padding: 10px;
+  }
+  .trip-metric-label { font-size: 0.65rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .trip-metric-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.2rem;
+    color: var(--text);
+    margin-top: 2px;
+  }
+
+  /* ─── APP SHORTCUTS ─── */
+  .shortcuts-bar {
+    position: fixed;
+    bottom: 74px;
+    left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 12px;
+    z-index: 99;
+  }
+  .shortcut-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 0;
+    width: 72px;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shortcut-btn:active { transform: scale(0.93); opacity: 0.8; }
+  .shortcut-icon { font-size: 1.5rem; line-height: 1; }
+  .shortcut-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  body.sun-mode .shortcut-btn {
+    background: #f0f4f8;
+    border-color: #c5cfe0;
+  }
+  body.sun-mode .shortcut-label { color: #4a5568; }
+
+  /* ─── BOTTOM BUTTONS ─── */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 6px 10px 14px;
+    z-index: 100;
+    gap: 0;
+  }
+  .btn {
+    flex: 1;
+    padding: 12px 8px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-bt {
+    background: transparent;
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+  }
+  .btn-bt.connected { background: rgba(0,229,255,0.1); }
+  .btn-gps {
+    background: transparent;
+    border: 1.5px solid var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-gps.active { background: rgba(57,255,20,0.1); }
+  .btn-history {
+    background: transparent;
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    flex: 0.5;
+    font-size: 1.1rem;
+  }
+  .btn-reset {
+    background: transparent;
+    border: 1.5px solid var(--muted);
+    color: var(--muted);
+    flex: 0.6;
+  }
+  .btn-wake, .btn-theme {
+    background: transparent;
+    border: 1.5px solid var(--muted);
+    color: var(--muted);
+    flex: 0.5;
+    font-size: 1.1rem;
+  }
+  .btn-wake.active {
+    border-color: var(--warn);
+    background: rgba(255,149,0,0.1);
+  }
+  .btn-theme.sun {
+    border-color: #f5a623;
+    color: #f5a623;
+    background: rgba(245,166,35,0.1);
+  }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed;
+    top: 70px; left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 200;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ─── NO DATA OVERLAY ─── */
+  .no-data {
+    text-align: center;
+    padding: 30px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+  }
+
+  /* ─── APP SHORTCUTS ─── */
+  .app-shortcuts {
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 4px 6px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  .app-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    flex: 1;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app-btn:active { opacity: 0.7; transform: scale(0.93); }
+  .app-icon {
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+  }
+  .phone-icon { background: linear-gradient(135deg, #34c759, #2da44e); }
+  .wa-icon { background: #075E54; }
+  .maps-icon { background: #fff; }
+  .spotify-icon { background: #191414; }
+  .app-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+  .main-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    width: 100%;
+  }
+  .main-buttons .btn {
+    flex: 1;
+    padding: 10px 4px;
+    font-size: 0.7rem;
+  }
+
+  .glow-cyan { text-shadow: 0 0 12px rgba(0,229,255,0.6); }
+  .glow-green { text-shadow: 0 0 12px rgba(57,255,20,0.6); }
+
+  /* ─── BATTERY COMPACT ─── */
+  .batt-compact-row {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    gap: 16px;
+  }
+  .batt-compact-left { flex: 1; }
+  .batt-compact-right {
+    flex: 1;
+    text-align: right;
+  }
+  .batt-pct {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 2.2rem;
+    line-height: 1;
+  }
+  .batt-pct.warn { color: var(--warn); }
+  .batt-pct.danger { color: var(--danger); }
+  .batt-pct-unit { font-size: 1.2rem; color: var(--muted); }
+  .batt-bar-track {
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    margin: 8px 0 5px;
+    overflow: hidden;
+  }
+  .batt-bar-fill {
+    height: 100%;
+    background: var(--accent2);
+    border-radius: 3px;
+    transition: width 0.5s;
+  }
+  .batt-bar-fill.warn { background: var(--warn); }
+  .batt-bar-fill.danger { background: var(--danger); }
+  .batt-sub { font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; }
+  .batt-range-km {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 2rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .batt-range-unit { font-size: 1rem; color: var(--muted); }
+  .batt-range-label { font-size: 0.6rem; color: var(--muted); letter-spacing: 2px; margin-top: 6px; }
+  .batt-range-note { font-size: 0.6rem; color: var(--muted); font-style: italic; margin-top: 2px; }
+
+
+  /* ─── LAYOUT ORIZZONTALE STILE ANDROID AUTO ─── */
+  :root { --card: color-mix(in srgb, var(--surface) 82%, transparent); }
+  html, body { height:100%; overflow:hidden; overscroll-behavior:contain; }
+  body { padding-bottom:0 !important; }
+  #map { position:fixed; inset:0; z-index:0; background:var(--bg); }
+  .me { transition:transform .5s; } .leaflet-container { font-family:inherit; }
+  header { position:fixed !important; top:6px; left:72px; right:auto; padding:0 !important; background:none !important; border:0 !important; z-index:120; pointer-events:none; }
+  header h1 { display:none; }
+  .header-right { background:var(--card); padding:5px 12px; border-radius:16px; border:1px solid var(--border); }
+  /* barra laterale */
+  .bottom-bar { top:0 !important; bottom:0 !important; left:0 !important; right:auto !important; width:64px; padding:6px 5px !important; flex-direction:column; border-top:0 !important; border-right:1px solid var(--border); overflow-y:auto; z-index:200; scrollbar-width:none; }
+  .bottom-bar > div:first-child { flex-direction:column !important; gap:6px; padding:0 0 8px !important; }
+  .bottom-bar > div:first-child a { flex:none !important; }
+  .bottom-bar > div:first-child a:nth-child(2), .bottom-bar > div:first-child span { display:none !important; }
+  .bottom-bar > div:first-child a > div { width:38px !important; height:38px !important; }
+  .bottom-bar > div:last-child { flex-direction:column !important; margin-top:4px !important; gap:5px !important; }
+  .bottom-bar .btn { flex:none !important; width:100%; min-height:42px; padding:8px 0; font-size:.68rem; letter-spacing:0; }
+  /* widget a destra */
+  #main-content { position:fixed; top:40px; right:8px; bottom:8px; width:min(250px,36vw); overflow-y:auto; display:flex; flex-direction:column; gap:6px; z-index:50; scrollbar-width:none; }
+  #main-content > * { margin:0 !important; flex:none; }
+  .section, .quick-row { background:var(--card) !important; backdrop-filter:blur(8px); border-radius:14px !important; }
+  #batt-section { order:1; } #weather-section { order:2; } #extra-section { order:3; } #trip-section { order:4; } .quick-row { order:5; }
+  #cells-section, .shortcuts-bar, .section-header { display:none !important; }
+  #batt-content .batt-range-km { font-size:2.3rem !important; }
+  .quick-row { grid-template-columns:1fr; } .quick-row .quick-cell:nth-child(2) { display:none; }
+  .quick-cell { background:transparent !important; padding:8px !important; }
+  /* velocità in basso a sinistra */
+  body .speed-hero { position:fixed; left:72px; bottom:8px; width:210px; padding:6px 10px 8px; background:var(--card) !important; backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:18px; z-index:60; }
+  body .speed-arc-wrap { width:190px; }
+  #recenter { position:fixed; left:72px; top:40px; z-index:60; background:var(--card); color:var(--accent); border:1px solid var(--border); border-radius:12px; padding:8px 12px; font-size:1rem; display:none; }
+  #attr { position:fixed; bottom:2px; left:50%; transform:translateX(-50%); font-size:.55rem; opacity:.6; z-index:5; color:var(--text); }
+  #odo-tile { cursor:pointer; }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+</head>
+<body>
+
+<div id="map"></div>
+<button id="recenter">⌖</button>
+<div id="attr">© OpenStreetMap © CARTO</div>
+
+<header>
+  <h1>⚡ VoltPilot</h1>
+  <div class="header-right">
+    <span id="bt-dot" class="status-dot"></span>
+    <span id="bt-label">BMS</span>
+    &nbsp;
+    <span id="gps-bars" style="display:inline-flex;align-items:flex-end;gap:1.5px;height:14px;margin-right:4px;">
+      <span class="gps-bar" style="width:3px;height:30%;background:var(--muted);border-radius:1px;"></span>
+      <span class="gps-bar" style="width:3px;height:55%;background:var(--muted);border-radius:1px;"></span>
+      <span class="gps-bar" style="width:3px;height:75%;background:var(--muted);border-radius:1px;"></span>
+      <span class="gps-bar" style="width:3px;height:100%;background:var(--muted);border-radius:1px;"></span>
+    </span>
+    <span id="gps-label">GPS</span>
+  </div>
+</header>
+
+<div id="main-content">
+
+<!-- SPEED HERO -->
+<div class="speed-hero">
+  <div class="speed-arc-wrap">
+    <svg viewBox="0 0 190 190" fill="none">
+      <!-- Background arc -->
+      <path d="M 15 155 A 80 80 0 1 1 175 155" stroke="#1e2530" stroke-width="12" stroke-linecap="round" fill="none"/>
+      <!-- Speed arc -->
+      <path id="speed-arc" d="M 15 155 A 80 80 0 1 1 175 155" stroke="url(#speedGrad)" stroke-width="12" stroke-linecap="round" fill="none"
+            stroke-dasharray="283" stroke-dashoffset="283"/>
+      <defs>
+        <linearGradient id="speedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#00e5ff"/>
+          <stop offset="100%" stop-color="#39ff14"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="speed-number glow-cyan" id="speed-display">0</div>
+  </div>
+  <div class="speed-unit">km/h</div>
+</div>
+
+<!-- QUICK ROW -->
+<div class="quick-row">
+  <div class="quick-cell" style="grid-column: span 2;">
+    <div class="quick-label" id="date-display" style="font-size:0.7rem;letter-spacing:1px;margin-bottom:2px">—</div>
+    <div class="quick-value" id="clock-display" style="font-size:1.5rem;">00:00</div>
+  </div>
+  <div class="quick-cell">
+    <div class="quick-label">Distanza</div>
+    <div class="quick-value" id="dist-display">0.00 <span>km</span></div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div id="history-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;overflow-y:auto;padding:16px 12px 100px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <span style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:3px;color:var(--accent)">📋 STORICO VIAGGI</span>
+    <button onclick="closeHistory()" style="background:transparent;border:1.5px solid var(--muted);color:var(--muted);border-radius:6px;padding:6px 14px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:2px;font-size:0.8rem;">✕ CHIUDI</button>
+  </div>
+  <div id="history-list"></div>
+</div>
+
+<!-- WEATHER -->
+<div class="section" id="weather-section">  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="weather-icon" style="font-size:1.8rem;">🌡️</span>
+      <div>
+        <div id="weather-temp" style="font-family:'Share Tech Mono',monospace;font-size:1.4rem;color:var(--accent);">—°C</div>
+        <div id="weather-desc" style="font-size:0.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Caricamento meteo...</div>
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">Vento</div>
+      <div id="weather-wind" style="font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--text);">— km/h</div>
+      <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px;margin-bottom:2px;">Umidità</div>
+      <div id="weather-humid" style="font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--text);">—%</div>
+    </div>
+  </div>
+</div>
+
+<!-- EXTRA -->
+<div class="section" id="extra-section">
+  <div class="trip-grid">
+    <div class="trip-metric"><div class="trip-metric-label">📱 Telefono</div><div class="trip-metric-value" id="phone-batt">—</div></div>
+    <div class="trip-metric" id="odo-tile"><div class="trip-metric-label">Totale</div><div class="trip-metric-value" id="odo-total">—</div></div>
+  </div>
+</div>
+
+<!-- TRIP -->
+<div class="section" id="trip-section">
+  <div class="section-header">
+    <span class="section-title">🗺 Trip</span>
+  </div>
+  <div class="trip-grid">
+    <div class="trip-metric">
+      <div class="trip-metric-label">ODO</div>
+      <div class="trip-metric-value" id="dist-display2">0.00 km</div>
+    </div>
+    <div class="trip-metric">
+      <div class="trip-metric-label">V. Media</div>
+      <div class="trip-metric-value" id="avgspeed-display">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- BATTERY COMPACT -->
+<div class="section" id="batt-section">
+  <div class="section-header">
+    <span class="section-title">🔋 Batteria</span>
+    <span id="batt-updated" style="font-size:0.65rem;color:var(--muted);">—</span>
+  </div>
+  <div id="batt-content">
+    <div class="no-data">Connetti il BMS via Bluetooth</div>
+  </div>
+</div>
+
+<!-- CELLS -->
+<div class="section" id="cells-section" style="display:none">  <div class="section-header">
+    <span class="section-title">⚡ Celle</span>
+    <span id="cells-delta" style="font-size:0.65rem;color:var(--muted)">Δ —</span>
+  </div>
+  <div class="cells-grid" id="cells-grid"></div>
+</div>
+
+<!-- BOTTOM BAR -->
+<!-- APP SHORTCUTS BAR -->
+<div class="shortcuts-bar">
+  <button class="shortcut-btn" onclick="openApp('tel')" title="Telefono">
+    <div class="shortcut-icon">📞</div>
+    <div class="shortcut-label">Chiama</div>
+  </button>
+  <button class="shortcut-btn" onclick="openApp('maps')" title="Google Maps">
+    <div class="shortcut-icon">🗺️</div>
+    <div class="shortcut-label">Maps</div>
+  </button>
+  <button class="shortcut-btn" onclick="openApp('spotify')" title="Spotify">
+    <div class="shortcut-icon">🎵</div>
+    <div class="shortcut-label">Spotify</div>
+  </button>
+</div>
+
+<!-- MAIN CONTROLS BAR -->
+</div><!-- end main-content -->
+
+<div class="bottom-bar">
+  <!-- APP SHORTCUTS -->
+  <div style="display:flex;flex-direction:row;justify-content:space-around;align-items:center;padding:6px 0 8px;border-bottom:1px solid var(--border);">
+    <a href="tel:" style="display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;flex:1;">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#34c759,#2da44e);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">📞</div>
+      <span style="font-size:0.58rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Chiama</span>
+    </a>
+    <a href="#" onclick="openMaps();return false;" style="display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;flex:1;">
+      <div style="width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" width="28" height="28"><path fill="#EA4335" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle fill="#fff" cx="12" cy="9" r="2.5"/></svg>
+      </div>
+      <span style="font-size:0.58rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Maps</span>
+    </a>
+    <a href="#" onclick="openSpotify();return false;" style="display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;flex:1;">
+      <div style="width:44px;height:44px;border-radius:12px;background:#191414;display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" fill="#1DB954" width="26" height="26"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      </div>
+      <span style="font-size:0.58rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Spotify</span>
+    </a>
+  </div>
+  <!-- MAIN CONTROLS -->
+  <div style="display:flex;flex-direction:row;gap:5px;margin-top:8px;">
+    <button class="btn btn-bt" id="btn-bt" onclick="toggleBluetooth()" style="flex:1.8;">🔵 BMS</button>
+    <button class="btn btn-gps" id="btn-gps" onclick="toggleGPS()" style="flex:1.5;">📍 GPS</button>
+    <button class="btn btn-history" id="btn-history" onclick="openHistory()" style="flex:0.7;">📋</button>
+    <button class="btn btn-reset" onclick="resetTrip()" style="flex:0.9;">↺</button>
+    <button class="btn btn-theme" id="btn-theme" onclick="toggleTheme()" style="flex:0.7;">🌙</button>
+    <button class="btn btn-wake" id="btn-wake" onclick="toggleWakeLock()" style="flex:0.7;">😴</button>
+  </div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+const state = {
+  // GPS
+  gpsActive: false,
+  watchId: null,
+  speed: 0,
+  maxSpeed: 0,
+  distance: 0,
+  lastPos: null,
+  startTime: null,
+  timerInterval: null,
+  speedSamples: [],
+
+  // BMS
+  btConnected: false,
+  btDevice: null,
+  btChar: null,
+  voltage: 0,
+  current: 0,
+  soc: 0,
+  remainAh: 0,
+  fullAh: 20, // default 20Ah
+  cells: [],
+  power: 0,
+};
+
+// ═══════════════════════════════════════════════
+// MULTI-PROTOCOL BMS DEFINITIONS
+// ═══════════════════════════════════════════════
+const BMS_PROTOCOLS = {
+
+  JBD: {
+    name: 'JBD/Xiaoxiang',
+    filters: [
+      { namePrefix: 'JBD' }, { namePrefix: 'SP' },
+      { namePrefix: 'ChefCucco' }, { namePrefix: 'DG' },
+      { namePrefix: 'LLT' }, { namePrefix: 'xiaoxiang' }
+    ],
+    services: ['0000ff00-0000-1000-8000-00805f9b34fb'],
+    rxUUIDs:  ['0000ff01-0000-1000-8000-00805f9b34fb','0000ffe1-0000-1000-8000-00805f9b34fb'],
+    txUUIDs:  ['0000ff02-0000-1000-8000-00805f9b34fb','0000ffe2-0000-1000-8000-00805f9b34fb'],
+    cmdBasic: new Uint8Array([0xDD,0xA5,0x03,0x00,0xFF,0xFD,0x77]),
+    cmdCell:  new Uint8Array([0xDD,0xA5,0x04,0x00,0xFF,0xFC,0x77]),
+    pollMs: 2000,
+  },
+
+  JKBMS: {
+    name: 'JKBMS',
+    filters: [
+      { namePrefix: 'JK' }, { namePrefix: 'JKBMS' },
+      { namePrefix: 'JK-B' }
+    ],
+    services: [
+      '0000ffe0-0000-1000-8000-00805f9b34fb',
+      '0000ff00-0000-1000-8000-00805f9b34fb'
+    ],
+    rxUUIDs: ['0000ffe1-0000-1000-8000-00805f9b34fb'],
+    txUUIDs: ['0000ffe1-0000-1000-8000-00805f9b34fb'], // same char, notify+write
+    // JKBMS activation + info request
+    cmdBasic: new Uint8Array([0x4E,0x57,0x00,0x13,0x00,0x00,0x00,0x00,0x06,0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x68,0x00,0x00,0x01,0x29]),
+    cmdCell: null, // cells come in same packet
+    pollMs: 2000,
+  },
+
+  DALY: {
+    name: 'Daly BMS',
+    filters: [
+      { namePrefix: 'Daly' }, { namePrefix: 'DALY' },
+      { namePrefix: 'DL-' }, { namePrefix: 'Smart BMS' }
+    ],
+    services: ['0000fff0-0000-1000-8000-00805f9b34fb'],
+    rxUUIDs: ['0000fff1-0000-1000-8000-00805f9b34fb'],
+    txUUIDs: ['0000fff2-0000-1000-8000-00805f9b34fb'],
+    // Daly: start(0xA5) + addr(0x40) + cmd(0x90=basic) + len(0x08) + 8 zeros + checksum
+    cmdBasic: new Uint8Array([0xA5,0x40,0x90,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x7D]),
+    cmdCell:  new Uint8Array([0xA5,0x40,0x95,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x82]),
+    pollMs: 2000,
+  },
+
+  ANT: {
+    name: 'ANT BMS',
+    filters: [
+      { namePrefix: 'ANT' }, { namePrefix: 'Ant' },
+      { namePrefix: 'ANTBMS' }
+    ],
+    services: ['0000ff00-0000-1000-8000-00805f9b34fb'],
+    rxUUIDs: ['0000ff01-0000-1000-8000-00805f9b34fb'],
+    txUUIDs: ['0000ff02-0000-1000-8000-00805f9b34fb'],
+    // ANT activation sequence
+    cmdBasic: new Uint8Array([0x5A,0x5A,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFE]),
+    cmdCell: null,
+    pollMs: 3000,
+  },
+
+  SEPLOS: {
+    name: 'Seplos',
+    filters: [
+      { namePrefix: 'Seplos' }, { namePrefix: 'SEPLOS' },
+      { namePrefix: 'SP20' }
+    ],
+    services: ['0000ffe0-0000-1000-8000-00805f9b34fb'],
+    rxUUIDs: ['0000ffe1-0000-1000-8000-00805f9b34fb'],
+    txUUIDs: ['0000ffe2-0000-1000-8000-00805f9b34fb'],
+    // Seplos MODBUS-like query
+    cmdBasic: new Uint8Array([0x7E,0x20,0x00,0x46,0x00,0x00,0xAD,0x5F,0x0D]),
+    cmdCell: null,
+    pollMs: 2000,
+  },
+};
+
+let detectedProtocol = null;
+let bmsInterval = null;
+let rxBuf = [];
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+function toast(msg, duration = 2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+// ═══════════════════════════════════════════════
+// GPS
+// ═══════════════════════════════════════════════
+function toggleGPS() {
+  if (state.gpsActive) stopGPS();
+  else startGPS();
+}
+
+function startGPS() {
+  if (!navigator.geolocation) { toast('❌ GPS non supportato'); return; }
+  toast('📍 Ricerca GPS...');
+  updateGPSBars('searching');
+
+  state.watchId = navigator.geolocation.watchPosition(onGPS, onGPSError, {
+    enableHighAccuracy: true,
+    maximumAge: 1000,
+    timeout: 10000
+  });
+
+  state.gpsActive = true;
+  if (!state.startTime) {
+    state.startTime = Date.now();
+  }
+  document.getElementById('btn-gps').classList.add('active');
+  document.getElementById('btn-gps').textContent = '⏹ GPS';
+}
+
+function stopGPS() {
+  if (state.watchId) navigator.geolocation.clearWatch(state.watchId);
+  saveTrip();
+  state.gpsActive = false;
+  updateGPSBars('off');
+  document.getElementById('gps-label').textContent = 'GPS';
+  document.getElementById('btn-gps').classList.remove('active');
+  document.getElementById('btn-gps').textContent = '📍 GPS';
+  setSpeed(0);
+  toast('GPS fermato');
+}
+
+function onGPS(pos) {
+  updateGPSBars('connected');
+  document.getElementById('gps-label').textContent = 'GPS';
+
+  const spd = pos.coords.speed != null ? pos.coords.speed * 3.6 : 0;
+  setSpeed(spd);
+
+  if (state.lastPos) {
+    const d = haversine(state.lastPos, pos.coords);
+    state.distance += d;
+    document.getElementById('dist-display').innerHTML =
+      (state.distance / 1000).toFixed(2) + ' <span>km</span>';
+    document.getElementById('dist-display2').textContent = (state.distance / 1000).toFixed(2) + ' km';
+
+  }
+  state.lastPos = pos.coords;
+  try { if (window.mapUpdate) mapUpdate(pos.coords); } catch (e) {}
+}
+
+function onGPSError(err) {
+  updateGPSBars('off');
+  toast('❌ GPS: ' + err.message);
+}
+
+function setSpeed(spd) {
+  state.speed = spd;
+  if (spd > state.maxSpeed) {
+    state.maxSpeed = spd;
+
+  }
+
+  // Speed samples for average
+  state.speedSamples.push(spd);
+  if (state.speedSamples.length > 100) state.speedSamples.shift();
+  const avg = state.speedSamples.reduce((a,b)=>a+b,0) / state.speedSamples.length;
+  document.getElementById('avgspeed-display').textContent = avg.toFixed(1) + ' km/h';
+
+  // Display
+  document.getElementById('speed-display').textContent = spd.toFixed(0);
+
+  // Arc (max 50 km/h = full arc, dasharray=283)
+  const pct = Math.min(spd / 50, 1);
+  const offset = 283 - (283 * pct);
+  document.getElementById('speed-arc').style.strokeDashoffset = offset;
+}
+
+function haversine(a, b) {
+  const R = 6371000;
+  const lat1 = a.latitude * Math.PI/180;
+  const lat2 = b.latitude * Math.PI/180;
+  const dLat = (b.latitude - a.latitude) * Math.PI/180;
+  const dLon = (b.longitude - a.longitude) * Math.PI/180;
+  const x = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+}
+
+function updateTimer() {
+  // Update clock always
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mn = String(now.getMinutes()).padStart(2,'0');
+  const ss2 = String(now.getSeconds()).padStart(2,'0');
+  const days = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  const months = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const dateStr = days[now.getDay()] + ' ' + now.getDate() + ' ' + months[now.getMonth()];
+  const clockEl = document.getElementById('clock-display');
+  const dateEl = document.getElementById('date-display');
+  if (clockEl) clockEl.textContent = hh + ':' + mn + ':' + ss2;
+  if (dateEl) dateEl.textContent = dateStr;
+
+  // Update trip timer only if riding
+  if (!state.startTime) return;
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+  const mm = String(Math.floor(elapsed/60)).padStart(2,'0');
+  const ss = String(elapsed % 60).padStart(2,'0');
+
+}
+
+function saveTrip() {
+  if (state.distance < 50) return; // ignore trips < 50m
+  const elapsed = state.startTime ? Math.floor((Date.now() - state.startTime) / 1000) : 0;
+  if (elapsed < 10) return;
+  const avg = state.speedSamples.length
+    ? state.speedSamples.reduce((a,b)=>a+b,0) / state.speedSamples.length
+    : 0;
+  const trip = {
+    date: new Date().toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric'}),
+    time: new Date().toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'}),
+    distance: (state.distance / 1000).toFixed(2),
+    duration: elapsed,
+    avgSpeed: avg.toFixed(1),
+    maxSpeed: state.maxSpeed.toFixed(0),
+  };
+  const history = JSON.parse(localStorage.getItem('ebike-history') || '[]');
+  history.unshift(trip);
+  if (history.length > 50) history.pop(); // keep last 50
+  localStorage.setItem('ebike-history', JSON.stringify(history));
+  toast('💾 Viaggio salvato!');
+}
+
+function formatDuration(s) {
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const ss = s%60;
+  if (h > 0) return h+'h '+String(m).padStart(2,'0')+'m';
+  return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+}
+
+function openHistory() {
+  const history = JSON.parse(localStorage.getItem('ebike-history') || '[]');
+  const list = document.getElementById('history-list');
+  if (history.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;font-size:0.85rem;letter-spacing:2px;">Nessun viaggio salvato</div>';
+  } else {
+    // Total stats
+    const totalDist = history.reduce((a,b)=>a+parseFloat(b.distance),0);
+    const totalTime = history.reduce((a,b)=>a+b.duration,0);
+    const topSpeed = Math.max(...history.map(t=>parseFloat(t.maxSpeed)));
+    list.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px;">
+        <div style="background:var(--surface2);padding:12px;text-align:center;">
+          <div style="font-size:0.6rem;color:var(--muted);letter-spacing:2px;margin-bottom:4px;">TOTALE KM</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:1.2rem;color:var(--accent)">${totalDist.toFixed(1)}</div>
+        </div>
+        <div style="background:var(--surface2);padding:12px;text-align:center;">
+          <div style="font-size:0.6rem;color:var(--muted);letter-spacing:2px;margin-bottom:4px;">TEMPO TOT</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:1.2rem;color:var(--accent)">${formatDuration(totalTime)}</div>
+        </div>
+        <div style="background:var(--surface2);padding:12px;text-align:center;">
+          <div style="font-size:0.6rem;color:var(--muted);letter-spacing:2px;margin-bottom:4px;">V. MAX</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:1.2rem;color:var(--accent)">${topSpeed} km/h</div>
+        </div>
+      </div>
+      ${history.map((t,i) => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text)">${t.date} — ${t.time}</span>
+            <button onclick="deleteTrip(${i})" style="background:transparent;border:none;color:var(--muted);font-size:1rem;cursor:pointer;">🗑</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;">
+            <div>
+              <div style="font-size:0.55rem;color:var(--muted);letter-spacing:1px;">DIST</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.95rem;color:var(--accent2)">${t.distance} km</div>
+            </div>
+            <div>
+              <div style="font-size:0.55rem;color:var(--muted);letter-spacing:1px;">TEMPO</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.95rem;">${formatDuration(t.duration)}</div>
+            </div>
+            <div>
+              <div style="font-size:0.55rem;color:var(--muted);letter-spacing:1px;">V.MEDIA</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.95rem;">${t.avgSpeed} km/h</div>
+            </div>
+            <div>
+              <div style="font-size:0.55rem;color:var(--muted);letter-spacing:1px;">V.MAX</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.95rem;color:var(--warn)">${t.maxSpeed} km/h</div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+      <button onclick="clearHistory()" style="width:100%;margin-top:6px;padding:12px;background:transparent;border:1.5px solid var(--danger);color:var(--danger);border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:2px;font-size:0.85rem;">🗑 CANCELLA TUTTO</button>
+    `;
+  }
+  document.getElementById('history-modal').style.display = 'block';
+}
+
+function closeHistory() {
+  document.getElementById('history-modal').style.display = 'none';
+}
+
+function deleteTrip(index) {
+  const history = JSON.parse(localStorage.getItem('ebike-history') || '[]');
+  history.splice(index, 1);
+  localStorage.setItem('ebike-history', JSON.stringify(history));
+  openHistory();
+}
+
+function clearHistory() {
+  if (confirm('Cancellare tutti i viaggi?')) {
+    localStorage.removeItem('ebike-history');
+    openHistory();
+  }
+}
+
+function resetTrip() {
+  saveTrip();
+  state.distance = 0;
+  state.maxSpeed = 0;
+  state.startTime = Date.now();
+  state.speedSamples = [];
+  state.lastPos = null;
+  document.getElementById('dist-display').innerHTML = '0.00 <span>km</span>';
+  document.getElementById('dist-display2').textContent = '0.00 km';
+  document.getElementById('avgspeed-display').textContent = '—';
+  document.getElementById('maxspeed-display2') && (document.getElementById('maxspeed-display2').textContent = '—');
+  toast('↺ Trip azzerato');
+}
+
+// ═══════════════════════════════════════════════
+// BLUETOOTH / JBD BMS
+// ═══════════════════════════════════════════════
+async function toggleBluetooth() {
+  if (state.btConnected) {
+    disconnectBT();
+  } else {
+    await connectBT();
+  }
+}
+
+async function connectBT() {
+  if (!navigator.bluetooth) {
+    toast('❌ Web Bluetooth non supportato. Usa Chrome su Android.');
+    return;
+  }
+  try {
+    toast('🔵 Ricerca BMS...');
+    updateGPSBars && document.getElementById('bt-dot') &&
+      (document.getElementById('bt-dot').className = 'status-dot searching');
+
+    // Collect all filters from all protocols
+    const allFilters = Object.values(BMS_PROTOCOLS).flatMap(p => p.filters);
+    const allServices = [...new Set(Object.values(BMS_PROTOCOLS).flatMap(p => p.services))];
+
+    state.btDevice = await navigator.bluetooth.requestDevice({
+      filters: allFilters,
+      optionalServices: allServices
+    });
+
+    state.btDevice.addEventListener('gattserverdisconnected', onBTDisconnect);
+    const server = await state.btDevice.gatt.connect();
+
+    // Auto-detect protocol by trying each one
+    detectedProtocol = null;
+    let rxChar = null;
+
+    for (const [protoName, proto] of Object.entries(BMS_PROTOCOLS)) {
+      for (const serviceUUID of proto.services) {
+        try {
+          const service = await server.getPrimaryService(serviceUUID);
+          for (let i = 0; i < proto.rxUUIDs.length; i++) {
+            try {
+              rxChar = await service.getCharacteristic(proto.rxUUIDs[i]);
+              // For JKBMS rx==tx same char
+              if (proto.rxUUIDs[i] === proto.txUUIDs[i]) {
+                state.btChar = rxChar;
+              } else {
+                state.btChar = await service.getCharacteristic(proto.txUUIDs[i]);
+              }
+              detectedProtocol = protoName;
+              break;
+            } catch(e) {}
+          }
+          if (detectedProtocol) break;
+        } catch(e) {}
+      }
+      if (detectedProtocol) break;
+    }
+
+    if (!rxChar || !state.btChar || !detectedProtocol) {
+      throw new Error('Protocollo BMS non riconosciuto');
+    }
+
+    await rxChar.startNotifications();
+    rxChar.addEventListener('characteristicvaluechanged', onBMSData);
+
+    state.btConnected = true;
+    const proto = BMS_PROTOCOLS[detectedProtocol];
+    document.getElementById('bt-dot').className = 'status-dot connected';
+    document.getElementById('bt-label').textContent = proto.name;
+    document.getElementById('btn-bt').classList.add('connected');
+    document.getElementById('btn-bt').textContent = '✓ BMS';
+    toast('✅ ' + proto.name + ' connesso!');
+
+    // Start polling
+    const poll = async () => {
+      await sendBMSCommand(proto.cmdBasic);
+      if (proto.cmdCell) await sendBMSCommand(proto.cmdCell);
+    };
+    await poll();
+    bmsInterval = setInterval(poll, proto.pollMs);
+
+  } catch(e) {
+    document.getElementById('bt-dot').className = 'status-dot';
+    if (e.name !== 'NotFoundError') toast('❌ BT: ' + e.message);
+    else toast('Ricerca annullata');
+  }
+}
+
+function disconnectBT() {
+  if (bmsInterval) clearInterval(bmsInterval);
+  if (state.btDevice && state.btDevice.gatt.connected) {
+    state.btDevice.gatt.disconnect();
+  }
+}
+
+function onBTDisconnect() {
+  state.btConnected = false;
+  if (bmsInterval) clearInterval(bmsInterval);
+  document.getElementById('bt-dot').className = 'status-dot';
+  document.getElementById('bt-label').textContent = 'BMS';
+  document.getElementById('btn-bt').classList.remove('connected');
+  document.getElementById('btn-bt').textContent = '🔵 BMS';
+  toast('🔌 BMS disconnesso');
+}
+
+async function sendBMSCommand(cmd) {
+  if (!state.btChar) return;
+  try {
+    await state.btChar.writeValue(cmd);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════
+// MULTI-PROTOCOL BMS PARSER
+// ═══════════════════════════════════════════════
+function onBMSData(event) {
+  const bytes = new Uint8Array(event.target.value.buffer);
+  rxBuf.push(...bytes);
+  if (rxBuf.length > 512) rxBuf = rxBuf.slice(-256); // prevent overflow
+
+  switch(detectedProtocol) {
+    case 'JBD':    parseJBD(); break;
+    case 'JKBMS':  parseJK(); break;
+    case 'DALY':   parseDaly(); break;
+    case 'ANT':    parseANT(); break;
+    case 'SEPLOS': parseSeplos(); break;
+  }
+}
+
+// ── Helpers ──
+function readInt16(hi, lo) {
+  let val = (hi << 8) | lo;
+  if (val & 0x8000) val -= 0x10000;
+  return val;
+}
+function readU16(buf, offset) { return (buf[offset] << 8) | buf[offset+1]; }
+function applyBMSState(voltage, current, remainAh, fullAh, soc, cells) {
+  state.voltage  = voltage;
+  state.current  = current;
+  state.remainAh = remainAh;
+  state.fullAh   = fullAh > 0 ? fullAh : state.fullAh;
+  state.soc      = soc;
+  state.power    = Math.abs(voltage * current);
+  if (cells && cells.length) state.cells = cells;
+  updateBatteryUI();
+  if (cells && cells.length) updateCellsUI();
+  document.getElementById('batt-updated').textContent =
+    new Date().toLocaleTimeString('it-IT');
+}
+
+// ── JBD/Xiaoxiang ──
+function parseJBD() {
+  while (rxBuf.length >= 7) {
+    const start = rxBuf.indexOf(0xDD);
+    if (start === -1) { rxBuf = []; break; }
+    if (start > 0) rxBuf = rxBuf.slice(start);
+    if (rxBuf.length < 4) break;
+    const len = rxBuf[3];
+    const total = 4 + len + 3;
+    if (rxBuf.length < total) break;
+    const p = rxBuf.splice(0, total);
+    if (p[p.length-1] !== 0x77 || p[2] !== 0x00) continue;
+    const d = p.slice(4, p.length - 3);
+    if (p[1] === 0x03 && d.length >= 20) {
+      applyBMSState(
+        readU16(d,0)/100, readInt16(d[2],d[3])/100,
+        readU16(d,4)/100, readU16(d,6)/100, d[19], null
+      );
+    } else if (p[1] === 0x04) {
+      const cells = [];
+      for (let i=0; i<Math.floor(d.length/2); i++)
+        cells.push(readU16(d,i*2)/1000);
+      state.cells = cells; updateCellsUI();
+    }
+  }
+}
+
+// ── JKBMS ──
+function parseJK() {
+  // JKBMS response starts with 0x4E 0x57
+  const start = rxBuf.findIndex((b,i) => b===0x4E && rxBuf[i+1]===0x57);
+  if (start === -1 || rxBuf.length - start < 11) return;
+  const len = readU16(rxBuf, start+2);
+  if (rxBuf.length - start < len) return;
+  const p = rxBuf.splice(start, len);
+
+  // Parse JKBMS data fields (TLV format)
+  let i = 11;
+  let voltage=0, current=0, soc=0, cells=[];
+  while (i < p.length - 5) {
+    const id = p[i]; const l = p[i+1];
+    const val = p.slice(i+2, i+2+l);
+    if (id === 0x83 && l === 2) voltage = readU16(val,0) / 100;
+    else if (id === 0x84 && l === 2) {
+      current = readU16(val,0) / 100;
+      if (current > 3000) current = -(65535 - current*100)/100; // signed
+    }
+    else if (id === 0x85 && l === 1) soc = val[0];
+    else if (id === 0x79) {
+      const cellCount = val[0];
+      for (let c=0; c<cellCount; c++)
+        cells.push(readU16(val, 1+c*3+1)/1000);
+    }
+    i += 2 + l;
+  }
+  if (voltage > 0)
+    applyBMSState(voltage, current, soc/100*state.fullAh, state.fullAh, soc, cells);
+}
+
+// ── Daly BMS ──
+function parseDaly() {
+  while (rxBuf.length >= 13) {
+    const start = rxBuf.indexOf(0xA5);
+    if (start === -1) { rxBuf = []; break; }
+    if (start > 0) rxBuf = rxBuf.slice(start);
+    if (rxBuf.length < 4) break;
+    const len = rxBuf[3];
+    const total = 4 + len + 1;
+    if (rxBuf.length < total) break;
+    const p = rxBuf.splice(0, total);
+    const cmd = p[2]; const d = p.slice(4, 4+len);
+    if (cmd === 0x90 && d.length >= 10) {
+      const voltage = readU16(d,0) / 10;
+      const current = (readU16(d,4) - 30000) / 10;
+      const soc = readU16(d,8) / 10;
+      applyBMSState(voltage, current, soc/100*state.fullAh, state.fullAh, Math.round(soc), null);
+    } else if (cmd === 0x95 && d.length >= 3) {
+      // Cell voltages: 3 cells per frame
+      const frame = d[0]; const count = d[1];
+      if (!state.cells || state.cells.length < count)
+        state.cells = new Array(count).fill(0);
+      const idx = (frame-1)*3;
+      for (let c=0; c<3 && idx+c<count; c++)
+        state.cells[idx+c] = readU16(d, 2+c*2)/1000;
+      updateCellsUI();
+    }
+  }
+}
+
+// ── ANT BMS ──
+function parseANT() {
+  // ANT response: 0x5A 0xA5 header
+  const start = rxBuf.findIndex((b,i) => b===0x5A && rxBuf[i+1]===0xA5);
+  if (start === -1 || rxBuf.length - start < 140) return;
+  const p = rxBuf.splice(start, 140);
+  const voltage = readU16(p, 4) / 100;
+  const current = readInt16(p[8], p[9]) / 10;
+  const soc = p[103];
+  const cells = [];
+  for (let c=0; c<24; c++) {
+    const v = readU16(p, 6+c*2)/1000;
+    if (v > 0.5) cells.push(v);
+  }
+  if (voltage > 0)
+    applyBMSState(voltage, current, soc/100*state.fullAh, state.fullAh, soc, cells);
+}
+
+// ── Seplos ──
+function parseSeplos() {
+  const start = rxBuf.indexOf(0x7E);
+  if (start === -1 || rxBuf.length - start < 18) return;
+  const end = rxBuf.indexOf(0x0D, start);
+  if (end === -1) return;
+  const p = rxBuf.splice(start, end-start+1);
+  if (p.length < 18) return;
+  // Simplified Seplos v2 parse
+  const dataLen = readU16(p, 3);
+  if (p.length < 7 + dataLen) return;
+  const d = p.slice(7, 7+dataLen);
+  const cellCount = d[0];
+  const cells = [];
+  for (let c=0; c<cellCount; c++) cells.push(readU16(d,1+c*2)/1000);
+  const base = 1 + cellCount*2;
+  if (d.length > base+10) {
+    const voltage = readU16(d,base+2)/100;
+    const current = readInt16(d[base+4],d[base+5])/100;
+    const soc = readU16(d,base+8)/10;
+    if (voltage > 0)
+      applyBMSState(voltage, current, soc/100*state.fullAh, state.fullAh, Math.round(soc), cells);
+  }
+}
+
+// ── BMS UI ──
+function updateBatteryUI() {
+  const s = state;
+  const pctClass = s.soc < 15 ? 'danger' : s.soc < 30 ? 'warn' : '';
+  const fillClass = s.soc < 15 ? 'danger' : s.soc < 30 ? 'warn' : '';
+
+  // Range estimate - always base on 75km/20Ah = 3.75 km/Ah
+  // Only blend real consumption after 3km+ to avoid noise
+  const BASE_KM_PER_AH = 3.75;
+  const distKm = s.distance / 1000;
+  const ahConsumed = s.fullAh - s.remainAh;
+  let kmPerAh = BASE_KM_PER_AH;
+  let rangeNote = 'stima base (75km/carica)';
+  if (distKm > 3.0 && ahConsumed > 0.5) {
+    const realKmPerAh = distKm / ahConsumed;
+    // Only use real if it's reasonable (1-6 km/Ah range)
+    if (realKmPerAh > 1 && realKmPerAh < 6) {
+      // Weighted blend: more weight to real as distance increases, max 60%
+      const weight = Math.min((distKm - 3) / 20, 0.6);
+      kmPerAh = realKmPerAh * weight + BASE_KM_PER_AH * (1 - weight);
+      rangeNote = 'consumo reale';
+    }
+  }
+  // Never let range exceed full-battery estimate
+  const maxRange = BASE_KM_PER_AH * s.fullAh;
+  const rangeKm = Math.min(kmPerAh * s.remainAh, maxRange * (s.soc / 100) * 1.05).toFixed(1);
+
+  document.getElementById('batt-content').innerHTML = `
+    <div class="batt-compact-row">
+      <div class="batt-compact-left">
+        <div class="batt-pct ${pctClass}">${s.soc}<span class="batt-pct-unit">%</span></div>
+        <div class="batt-bar-track"><div class="batt-bar-fill ${fillClass}" style="width:${s.soc}%"></div></div>
+        <div class="batt-sub">${s.remainAh.toFixed(1)} / ${s.fullAh.toFixed(0)} Ah</div>
+      </div>
+      <div class="batt-compact-right">
+        <div class="batt-range-km">${rangeKm}<span class="batt-range-unit"> km</span></div>
+        <div class="batt-range-label">AUTONOMIA EST.</div>
+        <div class="batt-range-note">${rangeNote}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('batt-updated').textContent = new Date().toLocaleTimeString('it-IT');
+}
+
+function updateRange() {
+  // Integrated into updateBatteryUI
+}
+
+function updateCellsUI() {
+  const cells = state.cells;
+  if (!cells.length) return;
+
+  document.getElementById('cells-section').style.display = 'block';
+
+  const min = Math.min(...cells);
+  const max = Math.max(...cells);
+  const delta = (max - min).toFixed(3);
+  document.getElementById('cells-delta').textContent = 'Δ ' + delta + ' V';
+
+  const grid = document.getElementById('cells-grid');
+  grid.innerHTML = cells.map((v, i) => {
+    const pct = ((v - 2.8) / (4.2 - 2.8) * 100).toFixed(0);
+    const isWarn = v === min && (max - min) > 0.05;
+    return `
+      <div class="cell-block ${v === max ? 'active' : ''} ${isWarn ? 'warn' : ''}">
+        <div class="cell-num">C${i+1}</div>
+        <div class="cell-v ${isWarn ? 'warn' : ''}">${v.toFixed(3)}</div>
+        <div class="cell-bar"><div class="cell-bar-fill" style="width:${pct}%"></div></div>
+      </div>
+    `;
+  }).join('');
+}
+</script>
+<script>
+// ═══════════════════════════════════════════════
+// PWA — Manifest + Service Worker
+// ═══════════════════════════════════════════════
+
+// Inline manifest injected as blob so the file works standalone
+const manifest = {
+  name: "VoltPilot",
+  short_name: "E-Bike",
+  description: "Dashboard GPS e BMS per e-bike",
+  start_url: ".",
+  display: "fullscreen",
+  orientation: "portrait",
+  background_color: "#0a0c0f",
+  theme_color: "#0a0c0f",
+  icons: [
+    {
+      src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%230a0c0f'/><text x='96' y='130' font-size='110' text-anchor='middle'>⚡</text></svg>`),
+      sizes: "192x192",
+      type: "image/svg+xml",
+      purpose: "any maskable"
+    }
+  ]
+};
+
+const manifestBlob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+const manifestURL = URL.createObjectURL(manifestBlob);
+document.getElementById('pwa-manifest').href = manifestURL;
+
+// Service Worker — cache offline
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = 'ebike-v1';
+    const FONTS = [
+      'https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap'
+    ];
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(FONTS).catch(()=>{})));
+      self.skipWaiting();
+    });
+    self.addEventListener('fetch', e => {
+      e.respondWith(
+        caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return res;
+        }).catch(() => r))
+      );
+    });
+  `;
+  const swBlob = new Blob([swCode], {type:'text/javascript'});
+  const swURL = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL, {scope: './'})
+    .then(() => console.log('SW registered'))
+    .catch(e => console.log('SW error:', e));
+}
+
+// Install prompt banner
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBanner();
+});
+
+function showInstallBanner() {
+  if (document.getElementById('install-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'install-banner';
+  banner.innerHTML = `
+    <div style="
+      position:fixed; bottom:90px; left:12px; right:12px;
+      background:#181c22; border:1px solid #00e5ff;
+      border-radius:10px; padding:12px 14px;
+      display:flex; align-items:center; justify-content:space-between;
+      z-index:300; font-family:'Barlow Condensed',sans-serif;
+      box-shadow: 0 0 20px rgba(0,229,255,0.15);
+    ">
+      <div>
+        <div style="font-size:0.85rem;color:#e8edf5;font-weight:600;letter-spacing:1px;">📲 Installa come App</div>
+        <div style="font-size:0.7rem;color:#4a5568;margin-top:2px;">Funziona offline • Schermo intero</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="installApp()" style="
+          background:#00e5ff; color:#0a0c0f; border:none;
+          padding:8px 14px; border-radius:6px;
+          font-family:'Rajdhani',sans-serif; font-weight:700;
+          font-size:0.8rem; letter-spacing:2px; cursor:pointer;
+        ">INSTALLA</button>
+        <button onclick="document.getElementById('install-banner').remove()" style="
+          background:transparent; color:#4a5568; border:1px solid #1e2530;
+          padding:8px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem;
+        ">✕</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(banner);
+}
+
+async function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-banner')?.remove();
+  if (outcome === 'accepted') toast('✅ App installata!');
+}
+
+// ═══════════════════════════════════════════════
+// APP SHORTCUTS
+// ═══════════════════════════════════════════════
+function openApp(app) {
+  const urls = {
+    tel:      'tel:',
+    maps:     'https://maps.google.com/',
+    spotify:  'https://open.spotify.com/',
+  };
+  // Try deep link first, fallback to web
+  const deepLinks = {
+    tel:      'tel:',
+    maps:     'intent://maps.google.com/#Intent;scheme=https;package=com.google.android.apps.maps;end',
+    spotify:  'intent://spotify.com#Intent;scheme=spotify;package=com.spotify.music;end',
+  };
+  const a = document.createElement('a');
+  a.href = deepLinks[app] || urls[app];
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// ═══════════════════════════════════════════════
+// WEATHER (Open-Meteo, no API key needed)
+// ═══════════════════════════════════════════════
+const WMO_ICONS = {
+  0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
+  45:'🌫️', 48:'🌫️',
+  51:'🌦️', 53:'🌦️', 55:'🌧️',
+  61:'🌧️', 63:'🌧️', 65:'🌧️',
+  71:'❄️', 73:'❄️', 75:'❄️',
+  80:'🌦️', 81:'🌧️', 82:'⛈️',
+  95:'⛈️', 96:'⛈️', 99:'⛈️'
+};
+const WMO_DESC = {
+  0:'Sereno', 1:'Poche nuvole', 2:'Parzialmente nuvoloso', 3:'Nuvoloso',
+  45:'Nebbia', 48:'Nebbia',
+  51:'Pioggerella', 53:'Pioggerella', 55:'Pioggerella intensa',
+  61:'Pioggia', 63:'Pioggia', 65:'Pioggia forte',
+  71:'Neve', 73:'Neve', 75:'Neve intensa',
+  80:'Rovesci', 81:'Rovesci', 82:'Rovesci forti',
+  95:'Temporale', 96:'Temporale', 99:'Temporale forte'
+};
+
+async function loadWeather() {
+  try {
+    // Get position first
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&wind_speed_unit=kmh&timezone=auto`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const c = data.current;
+      const code = c.weather_code;
+      document.getElementById('weather-icon').textContent = WMO_ICONS[code] || '🌡️';
+      document.getElementById('weather-temp').textContent = c.temperature_2m.toFixed(1) + '°C';
+      document.getElementById('weather-desc').textContent = WMO_DESC[code] || 'Meteo';
+      document.getElementById('weather-wind').textContent = c.wind_speed_10m.toFixed(0) + ' km/h';
+      document.getElementById('weather-humid').textContent = c.relative_humidity_2m + '%';
+    }, () => {
+      document.getElementById('weather-desc').textContent = 'Posizione non disponibile';
+    }, { timeout: 5000 });
+  } catch(e) {
+    document.getElementById('weather-desc').textContent = 'Meteo non disponibile';
+  }
+}
+
+// Load weather on start and every 10 minutes
+loadWeather();
+setInterval(loadWeather, 600000);
+
+// ═══════════════════════════════════════════════
+// GPS SIGNAL BARS
+// ═══════════════════════════════════════════════
+function updateGPSBars(status, accuracy) {
+  const bars = document.querySelectorAll('.gps-bar');
+  if (!bars.length) return;
+
+  let level = 0; // 0=off, 1-4 bars
+  let color = 'var(--muted)';
+
+  if (status === 'searching') {
+    // Animate pulse on all bars
+    bars.forEach(b => {
+      b.style.background = 'var(--warn)';
+      b.style.opacity = '0.5';
+    });
+    // Pulse animation
+    bars[0].style.animation = 'pulse 1s infinite';
+    return;
+  } else if (status === 'connected') {
+    // Calculate bars from accuracy (meters)
+    // <5m = 4 bars, <10m = 3, <20m = 2, >=20m = 1
+    if (accuracy === undefined || accuracy <= 5) level = 4;
+    else if (accuracy <= 10) level = 3;
+    else if (accuracy <= 20) level = 2;
+    else level = 1;
+    color = 'var(--accent2)';
+  }
+
+  bars.forEach((b, i) => {
+    b.style.animation = '';
+    b.style.opacity = '1';
+    b.style.background = i < level ? color : 'var(--muted)';
+    b.style.opacity = i < level ? '1' : '0.25';
+  });
+}
+
+// ═══════════════════════════════════════════════
+// APP OPENERS
+// ═══════════════════════════════════════════════
+function openMaps() {
+  const native = 'geo:0,0?q=';
+  const web = 'https://maps.google.com';
+  const a = document.createElement('a');
+  a.href = native;
+  a.click();
+  setTimeout(() => { window.open(web, '_blank'); }, 1500);
+}
+
+function openSpotify() {
+  const native = 'spotify://';
+  const web = 'https://open.spotify.com';
+  const a = document.createElement('a');
+  a.href = native;
+  a.click();
+  setTimeout(() => { window.open(web, '_blank'); }, 1500);
+}
+
+// ═══════════════════════════════════════════════
+// THEME TOGGLE (sole / notte)
+// ═══════════════════════════════════════════════
+let sunMode = false;
+
+function toggleTheme() {
+  sunMode = !sunMode;
+  document.body.classList.toggle('sun-mode', sunMode);
+  const btn = document.getElementById('btn-theme');
+  if (sunMode) {
+    btn.textContent = '🌙';
+    btn.classList.add('sun');
+    toast('☀️ Modalità sole attiva');
+  } else {
+    btn.textContent = '☀️';
+    btn.classList.remove('sun');
+    toast('🌙 Modalità notte attiva');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// WAKE LOCK (schermo sempre acceso)
+// ═══════════════════════════════════════════════
+let wakeLock = null;
+let wakeLockEnabled = false;
+
+async function toggleWakeLock() {
+  if (wakeLockEnabled) {
+    await releaseWakeLock();
+  } else {
+    await requestWakeLock();
+  }
+}
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) {
+    toast('⚠️ Wake Lock non supportato su questo browser');
+    return;
+  }
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLockEnabled = true;
+    const btn = document.getElementById('btn-wake');
+    btn.classList.add('active');
+    btn.textContent = '👁️';
+    toast('☀️ Schermo sempre acceso');
+
+    wakeLock.addEventListener('release', () => {
+      // Released by system (e.g. tab hidden)
+      wakeLockEnabled = false;
+      const b = document.getElementById('btn-wake');
+      if (b) { b.classList.remove('active'); b.textContent = '😴'; }
+    });
+  } catch(e) {
+    toast('❌ Wake Lock: ' + e.message);
+  }
+}
+
+async function releaseWakeLock() {
+  if (wakeLock) {
+    await wakeLock.release();
+    wakeLock = null;
+  }
+  wakeLockEnabled = false;
+  const btn = document.getElementById('btn-wake');
+  btn.classList.remove('active');
+  btn.textContent = '😴';
+  toast('🌙 Risparmio energetico riattivato');
+}
+
+// ═══════════════════════════════════════════════
+// TRIP SAVE (unlimited)
+// ═══════════════════════════════════════════════
+function saveTrip() {
+  if (state.distance < 50) return;
+  const elapsed = state.startTime ? Math.floor((Date.now() - state.startTime) / 1000) : 0;
+  if (elapsed < 10) return;
+  const avg = state.speedSamples.length
+    ? state.speedSamples.reduce((a,b)=>a+b,0) / state.speedSamples.length : 0;
+  const trip = {
+    date: new Date().toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric'}),
+    time: new Date().toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'}),
+    distance: (state.distance / 1000).toFixed(2),
+    duration: elapsed,
+    avgSpeed: avg.toFixed(1),
+    maxSpeed: state.maxSpeed.toFixed(0),
+  };
+  const history = JSON.parse(localStorage.getItem('ebike-history') || '[]');
+  history.unshift(trip);
+  if (history.length > 200) history.pop();
+  localStorage.setItem('ebike-history', JSON.stringify(history));
+  toast('💾 Viaggio salvato!');
+}
+
+// Start clock immediately
+setInterval(updateTimer, 1000);
+updateTimer();
+
+// Re-acquire wake lock if page becomes visible again
+document.addEventListener('visibilitychange', async () => {
+  if (wakeLockEnabled && document.visibilityState === 'visible') {
+    await requestWakeLock();
+  }
+});
+</script>
+<script>
+// ═══ MAPPA ONLINE (Leaflet) a schermo intero, segue il GPS ═══
+(function () {
+  const $ = id => document.getElementById(id);
+  if (!window.L) { $('attr').textContent = 'Mappa non disponibile (serve rete)'; return; }
+  const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([44.4949, 11.3426], 16);
+  const T = { dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' };
+  let layer, pausedUntil = 0, lastLL = null;
+  function setTiles() { if (layer) map.removeLayer(layer); layer = L.tileLayer(document.body.classList.contains('sun-mode') ? T.light : T.dark, { maxZoom: 19, subdomains: 'abcd' }).addTo(map); }
+  setTiles(); new MutationObserver(setTiles).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+  const icon = L.divIcon({ className: '', iconSize: [44, 44], iconAnchor: [22, 22], html: '<div class="me"><svg viewBox="0 0 40 40" width="44" height="44"><path d="M20 3 L33 35 L20 28 L7 35 Z" fill="#00e5ff" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg></div>' });
+  const marker = L.marker([44.4949, 11.3426], { icon, interactive: false }).addTo(map);
+  const me = () => marker.getElement() && marker.getElement().firstChild;
+
+  map.on('dragstart', () => { pausedUntil = Date.now() + 12000; $('recenter').style.display = 'block'; });
+  $('recenter').onclick = () => { pausedUntil = 0; $('recenter').style.display = 'none'; if (lastLL) map.setView(lastLL, 17); };
+
+  window.mapUpdate = function (c) {
+    lastLL = [c.latitude, c.longitude]; marker.setLatLng(lastLL);
+    if (c.heading != null && !isNaN(c.heading) && (c.speed || 0) > 1.2 && me()) me().style.transform = 'rotate(' + c.heading + 'deg)';
+    if (Date.now() > pausedUntil) {
+      $('recenter').style.display = 'none';
+      const k = (c.speed || 0) * 3.6;
+      map.setView(lastLL, k < 10 ? 18 : k < 22 ? 17 : 16, { animate: true });
+    }
+  };
+  navigator.geolocation && navigator.geolocation.getCurrentPosition(p => { lastLL = [p.coords.latitude, p.coords.longitude]; marker.setLatLng(lastLL); map.setView(lastLL, 17); }, () => {}, { timeout: 8000 });
+  addEventListener('resize', () => map.invalidateSize());
+
+  // batteria telefono
+  if (navigator.getBattery) navigator.getBattery().then(b => {
+    const u = () => { $('phone-batt').textContent = Math.round(b.level * 100) + '%' + (b.charging ? ' ⚡' : ''); };
+    u(); b.addEventListener('levelchange', u); b.addEventListener('chargingchange', u);
+  }); else $('phone-batt').textContent = 'n/d';
+
+  // km totali = base manuale + viaggi salvati + viaggio in corso
+  const KEY = 'ebike-odo-base';
+  function odo() {
+    let h = []; try { h = JSON.parse(localStorage.getItem('ebike-history') || '[]'); } catch (e) {}
+    const base = parseFloat(localStorage.getItem(KEY) || '0') || 0;
+    const sum = h.reduce((a, t) => a + (parseFloat(t.distance) || 0), 0);
+    $('odo-total').textContent = (base + sum + ((typeof state !== 'undefined' && state.distance) || 0) / 1000).toFixed(1) + ' km';
+  }
+  setInterval(odo, 2000); odo();
+  $('odo-tile').onclick = () => {
+    const v = prompt('Km già percorsi prima di usare l\'app:', localStorage.getItem(KEY) || '0');
+    if (v !== null) { localStorage.setItem(KEY, String(parseFloat(v.replace(',', '.')) || 0)); odo(); }
+  };
+})();
+</script>
+</body>
+</html>
