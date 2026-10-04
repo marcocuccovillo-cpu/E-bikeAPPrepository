@@ -666,6 +666,19 @@
     #trip-section, .quick-row { grid-column:auto; }
     #recenter { top:44px; }
   }
+  #nav-panel { position:fixed; inset:0; left:64px; z-index:450; background:rgba(0,0,0,.88); display:none; flex-direction:column; padding:14px 12px; gap:10px; overflow-y:auto; }
+  #nav-panel .row { display:flex; gap:8px; }
+  #nav-q { flex:1; min-width:0; background:var(--surface); color:var(--text); border:1.5px solid var(--accent); border-radius:12px; padding:14px; font-size:1.1rem; font-family:'Barlow Condensed',sans-serif; }
+  #nav-panel button { background:var(--surface2); color:var(--accent); border:1.5px solid var(--accent); border-radius:12px; padding:0 18px; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:.95rem; letter-spacing:1px; min-height:48px; }
+  .nav-res { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; color:var(--text); font-size:1rem; line-height:1.2; }
+  #nav-banner { position:fixed; top:44px; left:130px; max-width:min(420px,calc(100vw - 150px)); z-index:130; background:var(--card); backdrop-filter:blur(8px); border:1px solid var(--accent); border-radius:16px; padding:8px 12px; display:none; }
+  #nav-banner .m { display:flex; align-items:center; gap:10px; }
+  #nav-banner .ar { font-size:2rem; color:var(--accent); min-width:34px; text-align:center; }
+  #nav-banner .d { font-family:'Share Tech Mono',monospace; font-size:1.3rem; color:var(--accent); white-space:nowrap; }
+  #nav-banner .t { font-size:.95rem; line-height:1.1; }
+  #nav-banner .s { margin-top:6px; padding-top:6px; border-top:1px solid var(--border); display:flex; align-items:center; gap:8px; font-size:.8rem; color:var(--muted); }
+  #nav-banner .s span { flex:1; } #nav-banner .s b { color:var(--text); }
+  #nav-banner button { background:transparent; border:1px solid var(--muted); color:var(--text); border-radius:8px; padding:6px 10px; font-size:.9rem; }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -1921,9 +1934,94 @@ document.addEventListener('visibilitychange', async () => {
       const k = (c.speed || 0) * 3.6;
       map.setView(lastLL, k < 10 ? 18 : k < 22 ? 17 : 16, { animate: true });
     }
+    try { navTick(c); } catch (e) {}
   };
   navigator.geolocation && navigator.geolocation.getCurrentPosition(p => { lastLL = [p.coords.latitude, p.coords.longitude]; marker.setLatLng(lastLL); map.setView(lastLL, 17); }, () => {}, { timeout: 8000 });
   addEventListener('resize', () => map.invalidateSize());
+
+  // ═══ NAVIGAZIONE: ricerca via (Nominatim) + percorso bici (OSRM FOSSGIS) ═══
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const hv = (a, b, c, d) => { const r = Math.PI / 180, x = (c - a) * r, y = (d - b) * r, h = Math.sin(x / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin(y / 2) ** 2; return 12742000 * Math.asin(Math.sqrt(h)); };
+  const nav = { dest: null, coords: [], cum: [], steps: [], si: 1, total: 0, dur: 0, line: null, voice: true, spoken: {}, off: 0, lastRe: 0, idx: 0 };
+  const AR = { left: '↰', right: '↱', 'slight left': '↖', 'slight right': '↗', 'sharp left': '↙', 'sharp right': '↘', straight: '↑', uturn: '↶' };
+  const DIR = { left: 'a sinistra', right: 'a destra', 'slight left': 'leggermente a sinistra', 'slight right': 'leggermente a destra', 'sharp left': 'stretta a sinistra', 'sharp right': 'stretta a destra', straight: 'dritto', uturn: 'inversione a U' };
+  function stepInfo(st) {
+    const m = st.maneuver, t = m.type, mod = m.modifier, n = st.name ? ' su ' + st.name : '';
+    if (t === 'arrive') return ['🏁', 'Sei arrivato' + (st.name ? ' · ' + st.name : '')];
+    if (t === 'roundabout' || t === 'rotary' || t === 'exit roundabout') return ['⟳', "Alla rotonda esci all'uscita " + (m.exit || '') + n];
+    if (t === 'depart') return ['↑', 'Parti' + n];
+    if (t === 'fork' || t === 'merge') return [AR[mod] || '↑', 'Tieni la corsia ' + (DIR[mod] || '') + n];
+    if (mod === 'straight' || t === 'new name' || t === 'continue') return ['↑', 'Prosegui' + n];
+    return [AR[mod] || '↑', 'Svolta ' + (DIR[mod] || '') + n];
+  }
+  const fmtD = m => m >= 1000 ? (m / 1000).toFixed(1) + ' km' : Math.round(m / 10) * 10 + ' m';
+  function say(t) { if (nav.voice && window.speechSynthesis) { const u = new SpeechSynthesisUtterance(t); u.lang = 'it-IT'; speechSynthesis.cancel(); speechSynthesis.speak(u); } }
+
+  const panel = document.createElement('div'); panel.id = 'nav-panel';
+  panel.innerHTML = '<div class="row"><input id="nav-q" type="text" placeholder="Via, numero, città…" enterkeyhint="search"><button id="nav-go">CERCA</button><button id="nav-x">✕</button></div><div id="nav-res"></div>';
+  document.body.appendChild(panel);
+  const banner = document.createElement('div'); banner.id = 'nav-banner'; document.body.appendChild(banner);
+  const nb = document.createElement('button'); nb.className = 'btn btn-history'; nb.id = 'btn-nav'; nb.textContent = '🔍';
+  document.querySelector('.bottom-bar > div:last-child').prepend(nb);
+  nb.onclick = () => { panel.style.display = 'flex'; $('nav-q').focus(); };
+  $('nav-x').onclick = () => { panel.style.display = 'none'; };
+
+  async function search() {
+    const q = $('nav-q').value.trim(); if (!q) return;
+    const box = $('nav-res'); box.innerHTML = '<div class="nav-res">Cerco…</div>';
+    let vb = ''; if (lastLL) vb = '&viewbox=' + [lastLL[1] - .6, lastLL[0] + .6, lastLL[1] + .6, lastLL[0] - .6].join(',');
+    try {
+      const r = await (await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=it' + vb + '&q=' + encodeURIComponent(q))).json();
+      box.innerHTML = '';
+      if (!r.length) { box.innerHTML = '<div class="nav-res">Nessun risultato</div>'; return; }
+      r.forEach(x => { const d = document.createElement('div'); d.className = 'nav-res'; d.style.marginBottom = '8px'; d.textContent = x.display_name;
+        d.onclick = () => { panel.style.display = 'none'; routeTo({ lat: +x.lat, lon: +x.lon, name: x.name || x.display_name.split(',')[0] }); }; box.appendChild(d); });
+    } catch (e) { box.innerHTML = '<div class="nav-res">Ricerca non riuscita (serve rete)</div>'; }
+  }
+  $('nav-go').onclick = search; $('nav-q').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+
+  async function routeTo(dest, silent) {
+    if (!lastLL) { toast('📍 Attendo la posizione GPS…'); return; }
+    try {
+      const u = 'https://routing.openstreetmap.de/routed-bike/route/v1/driving/' + lastLL[1] + ',' + lastLL[0] + ';' + dest.lon + ',' + dest.lat + '?overview=full&geometries=geojson&steps=true';
+      const rt = (await (await fetch(u)).json()).routes[0];
+      nav.dest = dest; nav.coords = rt.geometry.coordinates.map(c => [c[1], c[0]]); nav.steps = rt.legs[0].steps;
+      nav.si = 1; nav.spoken = {}; nav.off = 0; nav.idx = 0; nav.total = rt.distance; nav.dur = rt.duration;
+      nav.cum = [0]; for (let i = 1; i < nav.coords.length; i++) nav.cum.push(nav.cum[i - 1] + hv(...nav.coords[i - 1], ...nav.coords[i]));
+      if (nav.line) map.removeLayer(nav.line);
+      nav.line = L.polyline(nav.coords, { color: '#00e5ff', weight: 7, opacity: .9 }).addTo(map);
+      if (!silent) { pausedUntil = Date.now() + 8000; $('recenter').style.display = 'block'; map.fitBounds(nav.line.getBounds(), { paddingTopLeft: [90, 90], paddingBottomRight: [270, 90] }); say('Percorso calcolato, ' + fmtD(nav.total)); }
+      renderNav(nav.steps[1] ? hv(...lastLL, nav.steps[1].maneuver.location[1], nav.steps[1].maneuver.location[0]) : 0, nav.total);
+    } catch (e) { toast('⚠️ Percorso non trovato'); }
+  }
+  function stopNav() { nav.dest = null; if (nav.line) map.removeLayer(nav.line); nav.line = null; banner.style.display = 'none'; speechSynthesis && speechSynthesis.cancel(); }
+
+  function renderNav(dStep, remM) {
+    const st = nav.steps[Math.min(nav.si, nav.steps.length - 1)], [ar, tx] = stepInfo(st);
+    const mins = Math.max(1, Math.round(nav.dur * (remM / nav.total) / 60));
+    const rng = parseFloat((document.querySelector('.batt-range-km') || {}).textContent), soc = (typeof state !== 'undefined') ? state.soc : 0;
+    let bat = '';
+    if (rng > 0 && soc > 0) { const arr = Math.round(soc - remM / 1000 / (rng / soc)); bat = arr < 5 ? ' · <b style="color:var(--danger)">⚠️ batteria insufficiente</b>' : ' · 🔋 arrivo ~<b>' + arr + '%</b>'; }
+    banner.innerHTML = '<div class="m"><div class="ar">' + ar + '</div><div class="d">' + fmtD(dStep) + '</div><div class="t">' + esc(tx) + '</div></div>' +
+      '<div class="s"><span>🏁 ' + esc(nav.dest.name) + ' · <b>' + (remM / 1000).toFixed(1) + ' km</b> · <b>' + mins + ' min</b>' + bat + '</span><button id="nav-v">' + (nav.voice ? '🔊' : '🔇') + '</button><button id="nav-end">✕</button></div>';
+    banner.style.display = 'block';
+    $('nav-end').onclick = stopNav; $('nav-v').onclick = () => { nav.voice = !nav.voice; renderNav(dStep, remM); };
+  }
+
+  function navTick(c) {
+    if (!nav.dest) return;
+    let best = 1e9, bi = nav.idx;
+    for (let i = Math.max(0, nav.idx - 5); i < nav.coords.length; i++) { const d = hv(c.latitude, c.longitude, ...nav.coords[i]); if (d < best) { best = d; bi = i; } if (d > best + 400 && i > bi + 30) break; }
+    nav.idx = bi;
+    if (best > 80) { if (++nav.off > 4 && Date.now() - nav.lastRe > 15000) { nav.lastRe = Date.now(); nav.off = 0; say('Ricalcolo il percorso'); routeTo(nav.dest, true); } } else nav.off = 0;
+    const remM = Math.max(0, nav.total - nav.cum[bi]);
+    const st = nav.steps[nav.si]; if (!st) return;
+    const dStep = hv(c.latitude, c.longitude, st.maneuver.location[1], st.maneuver.location[0]);
+    if (st.maneuver.type === 'arrive' && dStep < 30) { say('Sei arrivato a destinazione'); toast('🏁 Arrivato!'); stopNav(); return; }
+    if (dStep < 25 && nav.si < nav.steps.length - 1) nav.si++;
+    else if (dStep < 150 && !nav.spoken[nav.si]) { nav.spoken[nav.si] = 1; say('Tra ' + fmtD(dStep) + ', ' + stepInfo(st)[1]); }
+    renderNav(dStep, remM);
+  }
 
   // batteria telefono
   if (navigator.getBattery) navigator.getBattery().then(b => {
