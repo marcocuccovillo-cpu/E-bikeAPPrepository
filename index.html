@@ -694,6 +694,17 @@
   #b2-panel input { flex:none; width:110px; } #b2-info { color:var(--accent); font-size:1.05rem; }
   #batt-section { cursor:pointer; }
   .b2-link { margin-top:8px; font-size:.8rem; letter-spacing:.5px; color:var(--accent); }
+  #km-strip { position:fixed; top:6px; right:8px; z-index:125; display:flex; gap:1px; background:var(--border); backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+  #km-strip > div { padding:3px 8px; text-align:center; min-width:44px; background:var(--card); }
+  #km-strip small { display:block; font-size:.5rem; letter-spacing:1px; color:var(--muted); text-transform:uppercase; }
+  #km-strip b { font-family:'Share Tech Mono',monospace; font-size:.9rem; color:var(--accent); font-weight:400; }
+  @media (orientation:portrait) { #rain-chip { top:48px; } }
+  @media (orientation:landscape) { #rain-chip { right:auto; left:50%; transform:translateX(-50%); } }
+  #poi-pick { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:460; background:var(--surface); border:1.5px solid var(--accent); border-radius:16px; padding:14px; display:none; max-width:92vw; }
+  #poi-pick .g { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  #poi-pick button { background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:8px 4px; min-width:52px; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:.6rem; }
+  #poi-pick button span { font-size:1.7rem; }
+  #poi-cancel { width:100%; margin-top:8px; padding:12px; font-size:.9rem !important; }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -1950,6 +1961,7 @@ document.addEventListener('visibilitychange', async () => {
       map.setView(lastLL, k < 10 ? 18 : k < 22 ? 17 : 16, { animate: true });
     }
     try { navTick(c); } catch (e) {}
+    try { window.poiTick && poiTick(c); } catch (e) {}
   };
   navigator.geolocation && navigator.geolocation.getCurrentPosition(p => { lastLL = [p.coords.latitude, p.coords.longitude]; marker.setLatLng(lastLL); map.setView(lastLL, 17); }, () => {}, { timeout: 8000 });
   addEventListener('resize', () => map.invalidateSize());
@@ -2211,6 +2223,68 @@ document.addEventListener('visibilitychange', async () => {
       if (!h) { toast('🏠 Imposta casa: 🔍 → Imposta casa qui'); return; }
       if (lastLL && hv(lastLL[0], lastLL[1], h[0], h[1]) < 60) { toast('🏠 Sei già a casa'); return; }
       routeTo({ lat: h[0], lon: h[1], name: 'Casa' });
+    };
+  })();
+
+  // ═══ KM PERIODICI (oggi / settimana / mese) ═══
+  (function () {
+    const el = document.createElement('div'); el.id = 'km-strip';
+    el.innerHTML = '<div><small>Oggi</small><b id="km-d">—</b></div><div><small>Sett.</small><b id="km-w">—</b></div><div><small>Mese</small><b id="km-m">—</b></div>';
+    document.body.appendChild(el);
+    const f = v => v < 10 ? v.toFixed(1) : Math.round(v) + '';
+    function calc() {
+      let h = []; try { h = JSON.parse(localStorage.getItem('ebike-history') || '[]'); } catch (e) {}
+      const n = new Date(), y = n.getFullYear(), mo = n.getMonth(), da = n.getDate();
+      const today = new Date(y, mo, da).getTime(), mon = new Date(y, mo, da - ((n.getDay() + 6) % 7)).getTime();
+      let d = 0, w = 0, m = 0;
+      h.forEach(t => {
+        const q = String(t.date || '').split('/'); if (q.length < 3) return;
+        const dt = new Date(+q[2], +q[1] - 1, +q[0]), k = parseFloat(t.distance) || 0;
+        if (dt.getTime() === today) d += k; if (dt.getTime() >= mon) w += k; if (dt.getFullYear() === y && dt.getMonth() === mo) m += k;
+      });
+      const cur = ((typeof state !== 'undefined' && state.distance) || 0) / 1000; d += cur; w += cur; m += cur;
+      $('km-d').textContent = f(d); $('km-w').textContent = f(w); $('km-m').textContent = f(m);
+    }
+    calc(); setInterval(calc, 3000);
+  })();
+
+  // ═══ I TUOI PUNTI SULLA MAPPA: tieni premuto sulla mappa o usa 📌; avviso a ~100 m ═══
+  (function () {
+    const KEY = 'ebike-pois';
+    const LAB = { '⚠️': 'Buca', '📸': 'Vista', '☕': 'Bar', '🚧': 'Pericolo', '⭐': 'Punto' };
+    const VOX = { '⚠️': 'strada dissestata', '📸': 'panorama', '☕': 'bar', '🚧': 'punto pericoloso', '⭐': 'punto salvato' };
+    let pois = []; try { pois = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) {}
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(pois)); } catch (e) {} };
+    const alerted = {};
+    function draw(p) {
+      const m = L.marker([p.lat, p.lon], { icon: L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], html: '<div style="font-size:1.5rem;filter:drop-shadow(0 0 3px #000)">' + p.t + '</div>' }) }).addTo(map);
+      m.on('click', () => { if (confirm(p.t + ' ' + VOX[p.t] + '\n\nEliminare questo punto?')) { map.removeLayer(m); pois = pois.filter(x => x.id !== p.id); save(); } });
+    }
+    pois.forEach(draw);
+    let pend = null;
+    const pick = document.createElement('div'); pick.id = 'poi-pick';
+    pick.innerHTML = '<div style="color:var(--text);font-size:1rem;margin-bottom:8px">Salva punto sulla mappa</div><div class="g">' +
+      Object.keys(LAB).map(k => '<button data-t="' + k + '"><span>' + k + '</span>' + LAB[k] + '</button>').join('') + '</div><button id="poi-cancel">ANNULLA</button>';
+    document.body.appendChild(pick);
+    const open = ll => { pend = ll; pick.style.display = 'block'; };
+    pick.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
+      const p = { id: Date.now(), lat: pend[0], lon: pend[1], t: b.dataset.t }; pois.push(p); save(); draw(p);
+      pick.style.display = 'none'; toast(p.t + ' Punto salvato');
+    });
+    $('poi-cancel').onclick = () => { pick.style.display = 'none'; };
+    map.on('contextmenu', e => open([e.latlng.lat, e.latlng.lng]));
+    const rail = document.querySelector('.bottom-bar > div:last-child');
+    const b = document.createElement('button'); b.className = 'btn btn-app'; b.id = 'btn-poi';
+    b.style.cssText = 'flex-direction:column;line-height:1.1;border-color:var(--warn);';
+    b.innerHTML = '<span style="font-size:1.1rem">📌</span><span style="font-size:.6rem;">PUNTO</span>';
+    rail.insertBefore(b, document.getElementById('btn-call'));
+    b.onclick = () => { if (!lastLL) { toast('📍 Attendo il GPS…'); return; } open(lastLL.slice()); };
+    window.poiTick = function (c) {
+      pois.forEach(p => {
+        const d = hv(c.latitude, c.longitude, p.lat, p.lon);
+        if (d < 100 && !alerted[p.id]) { alerted[p.id] = 1; say('Tra ' + fmtD(d) + ', ' + VOX[p.t]); toast(p.t + ' ' + VOX[p.t] + ' tra ' + fmtD(d)); }
+        else if (d > 250) delete alerted[p.id];
+      });
     };
   })();
 
