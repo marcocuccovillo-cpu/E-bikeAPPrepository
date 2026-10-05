@@ -731,6 +731,9 @@
   #compass-section .ct { font-size:1.05rem; } #compass-section .cs { font-size:.58rem; } #compass-section .cd { font-size:.68rem; margin-top:2px; }
   @media (orientation:landscape) { #nav-banner { left:245px; max-width:min(420px,calc(100vw - 480px)); } #recenter { left:245px; top:44px; } }
   @media (orientation:portrait) { #nav-banner { top:130px; left:72px; right:8px; max-width:none; } #recenter { left:auto; right:8px; top:96px; } }
+  #bk-panel { position:fixed; inset:0; left:64px; z-index:450; background:rgba(0,0,0,.88); display:none; flex-direction:column; padding:14px 12px; gap:10px; overflow-y:auto; }
+  #bk-panel button { background:var(--surface2); color:var(--accent); border:1.5px solid var(--accent); border-radius:12px; padding:0 14px; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:.9rem; letter-spacing:1px; min-height:46px; }
+  #bk-bar { height:10px; border-radius:6px; background:var(--surface2); overflow:hidden; } #bk-bar > div { height:100%; background:var(--accent2); }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -2647,6 +2650,57 @@ document.addEventListener('visibilitychange', async () => {
     b.className = 'btn btn-app'; b.id = 'btn-garage'; b.style.cssText = 'flex-direction:column;line-height:1.1;border-color:var(--accent2);';
     b.innerHTML = '<span style="font-size:1.1rem">🚲</span><span style="font-size:.6rem">GARAGE</span>';
     rail.insertBefore(b, document.getElementById('btn-call')); b.onclick = () => { draw(); panel.style.display = 'flex'; };
+  })();
+
+  // ═══ BACKUP / RIPRISTINO e SPAZIO USATO ═══
+  (function () {
+    const LIM = 5000000, LK = 'ebike-backup-last';
+    const mine = () => Object.keys(localStorage).filter(k => k.startsWith('ebike'));
+    const sz = k => k.length + (localStorage.getItem(k) || '').length;
+    const kb = n => (n / 1000).toLocaleString('it-IT', { maximumFractionDigits: 0 }) + ' KB';
+    const panel = document.createElement('div'); panel.id = 'bk-panel'; document.body.appendChild(panel);
+    const grp = k => k === 'ebike-history' ? 'Storico viaggi' : k === 'ebike-tracks' ? 'Tracce GPS' : k === 'ebike-garage' ? 'Garage' : k === 'ebike-pois' ? 'Punti sulla mappa' : 'Impostazioni e altro';
+    function draw() {
+      const g = {}; let app = 0, all = 0;
+      Object.keys(localStorage).forEach(k => { const n = sz(k); all += n; if (k.startsWith('ebike')) { app += n; g[grp(k)] = (g[grp(k)] || 0) + n; } });
+      const pct = Math.min(100, all / LIM * 100), last = parseInt(localStorage.getItem(LK)) || 0, canShare = !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'x.json', { type: 'application/json' })] }));
+      panel.innerHTML = '<div style="display:flex;align-items:center"><b style="flex:1;font-size:1.1rem;color:var(--text)">💾 Backup e spazio</b><button id="bk-x" style="min-height:40px">✕</button></div>' +
+        '<div class="gsec"><h4>SPAZIO USATO</h4><div id="bk-bar"><div style="width:' + pct.toFixed(1) + '%;' + (pct > 80 ? 'background:var(--danger)' : pct > 60 ? 'background:var(--warn)' : '') + '"></div></div>' +
+        '<div class="hrow" style="margin-top:6px"><span>App</span><b>' + kb(app) + '</b></div>' +
+        Object.keys(g).map(k => '<div class="hrow" style="font-size:.8rem"><span>· ' + k + '</span><b>' + kb(g[k]) + '</b></div>').join('') +
+        (all > app ? '<div class="hrow" style="font-size:.8rem"><span>· Altri dati dello stesso sito</span><b>' + kb(all - app) + '</b></div>' : '') +
+        '<div style="font-size:.75rem;color:var(--muted);margin-top:4px">Totale ' + kb(all) + ' su circa 5.000 KB (' + pct.toFixed(0) + '%)' + (pct > 80 ? ' · quasi pieno: libera spazio' : '') + '</div></div>' +
+        '<div class="gsec"><h4>BACKUP</h4><div style="font-size:.8rem;color:var(--muted);margin-bottom:6px">Ultimo backup: ' + (last ? new Date(last).toLocaleDateString('it-IT') : 'mai') + '. Include storico, tracce, garage, punti, casa, destinazioni e impostazioni.</div>' +
+        '<div style="display:flex;gap:8px"><button id="bk-save" style="flex:1">SALVA FILE</button>' + (canShare ? '<button id="bk-share" style="flex:1">INVIA / DRIVE</button>' : '') + '</div></div>' +
+        '<div class="gsec"><h4>RIPRISTINO</h4><div style="font-size:.8rem;color:var(--muted);margin-bottom:6px">Carica un file di backup. I dati con lo stesso nome vengono sostituiti.</div><button id="bk-load" style="width:100%">RIPRISTINA DA FILE</button><input type="file" id="bk-file" accept=".json,application/json" style="display:none"></div>' +
+        '<div class="gsec"><h4>LIBERA SPAZIO</h4><div style="font-size:.8rem;color:var(--muted);margin-bottom:6px">Elimina le tracce GPS dei viaggi più vecchi tenendo le ultime 30. Lo storico dei viaggi resta.</div><button id="bk-clean" style="width:100%">ELIMINA TRACCE VECCHIE</button></div>';
+      $('bk-x').onclick = () => { panel.style.display = 'none'; };
+      const make = () => { const data = {}; mine().forEach(k => { data[k] = localStorage.getItem(k); }); const iso = new Date().toISOString();
+        return { name: 'voltpilot-backup-' + iso.slice(0, 10) + '.json', blob: new Blob([JSON.stringify({ app: 'voltpilot', v: 1, date: iso, data })], { type: 'application/json' }) }; };
+      $('bk-save').onclick = () => { const f = make(), a = document.createElement('a'); a.href = URL.createObjectURL(f.blob); a.download = f.name; document.body.appendChild(a); a.click(); a.remove();
+        localStorage.setItem(LK, String(Date.now())); toast('💾 Backup salvato'); setTimeout(draw, 500); };
+      if ($('bk-share')) $('bk-share').onclick = async () => { const f = make();
+        try { await navigator.share({ files: [new File([f.blob], f.name, { type: 'application/json' })], title: 'Backup VoltPilot' }); localStorage.setItem(LK, String(Date.now())); draw(); } catch (e) {} };
+      $('bk-load').onclick = () => $('bk-file').click();
+      $('bk-file').onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader();
+        r.onload = () => { try {
+            const o = JSON.parse(r.result); if (o.app !== 'voltpilot' || !o.data) throw 0;
+            const keys = Object.keys(o.data).filter(k => k.startsWith('ebike'));
+            if (!keys.length || !confirm('Ripristinare ' + keys.length + ' voci dal backup del ' + new Date(o.date).toLocaleDateString('it-IT') + '?\nI dati attuali con lo stesso nome verranno sostituiti.')) return;
+            keys.forEach(k => localStorage.setItem(k, o.data[k])); toast('✅ Ripristinato'); setTimeout(() => location.reload(), 800);
+          } catch (err) { toast('⚠️ File di backup non valido'); } };
+        r.readAsText(f); };
+      $('bk-clean').onclick = () => { let tr = {}; try { tr = JSON.parse(localStorage.getItem('ebike-tracks')) || {}; } catch (e) {}
+        const ids = Object.keys(tr).sort((a, b) => b - a); if (ids.length <= 30) { toast('Niente da eliminare'); return; }
+        if (!confirm('Eliminare le tracce GPS di ' + (ids.length - 30) + ' viaggi più vecchi?')) return;
+        ids.slice(30).forEach(k => delete tr[k]); localStorage.setItem('ebike-tracks', JSON.stringify(tr)); toast('🧹 Spazio liberato'); draw(); };
+    }
+    const rail = document.querySelector('.bottom-bar > div:last-child'), b = document.createElement('button');
+    b.className = 'btn btn-app'; b.id = 'btn-backup'; b.style.cssText = 'flex-direction:column;line-height:1.1;border-color:var(--accent);';
+    b.innerHTML = '<span style="font-size:1.1rem">💾</span><span style="font-size:.6rem">BACKUP</span>';
+    rail.insertBefore(b, document.getElementById('btn-call')); b.onclick = () => { draw(); panel.style.display = 'flex'; };
+    setTimeout(() => { try { const h = JSON.parse(localStorage.getItem('ebike-history') || '[]'), last = parseInt(localStorage.getItem(LK)) || 0;
+      if (h.length >= 5 && Date.now() - last > 30 * 864e5) toast('💾 Fai un backup dei tuoi dati (tasto BACKUP)'); } catch (e) {} }, 6000);
   })();
 
   // batteria telefono
