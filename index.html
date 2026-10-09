@@ -7,17 +7,18 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="E-Bike">
+<meta name="apple-mobile-web-app-title" content="VoltPilot">
 <meta name="theme-color" content="#0a0c0f">
 <meta name="description" content="Dashboard GPS e BMS per e-bike">
-<link rel="manifest" href="#" id="pwa-manifest">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
 <!-- PWA: usa Chrome > Aggiungi a schermata Home -->
 <meta name="theme-color" content="#0a0c0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="E-Bike">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0c0f'/><text y='.9em' font-size='80'>⚡</text></svg>">
+<meta name="apple-mobile-web-app-title" content="VoltPilot">
+<link rel="apple-touch-icon" href="icon-180.png">">
 <style>
   :root {
     --bg: #0a0c0f;
@@ -1626,57 +1627,8 @@ function updateCellsUI() {
 // PWA — Manifest + Service Worker
 // ═══════════════════════════════════════════════
 
-// Inline manifest injected as blob so the file works standalone
-const manifest = {
-  name: "VoltPilot",
-  short_name: "E-Bike",
-  description: "Dashboard GPS e BMS per e-bike",
-  start_url: ".",
-  display: "fullscreen",
-  orientation: "portrait",
-  background_color: "#0a0c0f",
-  theme_color: "#0a0c0f",
-  icons: [
-    {
-      src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%230a0c0f'/><text x='96' y='130' font-size='110' text-anchor='middle'>⚡</text></svg>`),
-      sizes: "192x192",
-      type: "image/svg+xml",
-      purpose: "any maskable"
-    }
-  ]
-};
-
-const manifestBlob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
-const manifestURL = URL.createObjectURL(manifestBlob);
-document.getElementById('pwa-manifest').href = manifestURL;
-
-// Service Worker — cache offline
-if ('serviceWorker' in navigator) {
-  const swCode = `
-    const CACHE = 'ebike-v1';
-    const FONTS = [
-      'https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap'
-    ];
-    self.addEventListener('install', e => {
-      e.waitUntil(caches.open(CACHE).then(c => c.addAll(FONTS).catch(()=>{})));
-      self.skipWaiting();
-    });
-    self.addEventListener('fetch', e => {
-      e.respondWith(
-        caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-          return res;
-        }).catch(() => r))
-      );
-    });
-  `;
-  const swBlob = new Blob([swCode], {type:'text/javascript'});
-  const swURL = URL.createObjectURL(swBlob);
-  navigator.serviceWorker.register(swURL, {scope: './'})
-    .then(() => console.log('SW registered'))
-    .catch(e => console.log('SW error:', e));
-}
+// Service Worker (file sw.js accanto a index.html)
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(e => console.log('SW error:', e));
 
 // Install prompt banner
 let deferredPrompt = null;
