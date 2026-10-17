@@ -1554,26 +1554,24 @@ function updateBatteryUI() {
   const pctClass = s.soc < 15 ? 'danger' : s.soc < 30 ? 'warn' : '';
   const fillClass = s.soc < 15 ? 'danger' : s.soc < 30 ? 'warn' : '';
 
-  // Range estimate - always base on 75km/20Ah = 3.75 km/Ah
-  // Only blend real consumption after 3km+ to avoid noise
+  // Stima autonomia: km per Ah dal TUO storico (ultimi 10 giri con dati BMS), altrimenti base 75 km / 20 Ah.
+  // Durante il giro si mescola il consumo reale, misurato in Ah consumati DA INIZIO VIAGGIO (non dall'ultima carica).
   const BASE_KM_PER_AH = 3.75;
   const distKm = s.distance / 1000;
-  const ahConsumed = s.fullAh - s.remainAh;
   let kmPerAh = BASE_KM_PER_AH;
   let rangeNote = 'stima base (75km/carica)';
-  if (distKm > 3.0 && ahConsumed > 0.5) {
-    const realKmPerAh = distKm / ahConsumed;
-    // Only use real if it's reasonable (1-6 km/Ah range)
-    if (realKmPerAh > 1 && realKmPerAh < 6) {
-      // Weighted blend: more weight to real as distance increases, max 60%
-      const weight = Math.min((distKm - 3) / 20, 0.6);
-      kmPerAh = realKmPerAh * weight + BASE_KM_PER_AH * (1 - weight);
-      rangeNote = 'consumo reale';
-    }
+  try {
+    const H = JSON.parse(localStorage.getItem('ebike-history') || '[]').filter(t => t.ah > 0.3 && parseFloat(t.distance) > 1).slice(0, 10);
+    const kmH = H.reduce((a, t) => a + parseFloat(t.distance), 0), ahH = H.reduce((a, t) => a + t.ah, 0);
+    if (kmH >= 8 && ahH > 0 && kmH / ahH > 1.5 && kmH / ahH < 6) { kmPerAh = kmH / ahH; rangeNote = 'dal tuo storico'; }
+  } catch (e) {}
+  const rt = window.vpRec ? window.vpRec() : null;
+  if (rt && distKm > 2 && rt.ah > 0.3 && distKm / rt.ah > 1 && distKm / rt.ah < 6) {
+    const w = Math.min((distKm - 2) / 10, 0.7);
+    kmPerAh = (distKm / rt.ah) * w + kmPerAh * (1 - w);
+    rangeNote = 'consumo reale';
   }
-  // Never let range exceed full-battery estimate
-  const maxRange = BASE_KM_PER_AH * s.fullAh;
-  const rangeKm = Math.min(kmPerAh * s.remainAh, maxRange * (s.soc / 100) * 1.05).toFixed(1);
+  const rangeKm = (kmPerAh * s.remainAh).toFixed(1);
 
   document.getElementById('batt-content').innerHTML = `
     <div class="batt-compact-row">
@@ -2094,56 +2092,6 @@ document.addEventListener('visibilitychange', async () => {
     });
   })();
 
-  // ═══ RAGGIO DI RITORNO: area che puoi raggiungere e da cui riesci ancora a tornare a casa ═══
-  (function () {
-    const rail = document.querySelector('.bottom-bar > div:last-child'), KEY = 'ebike-home';
-    const getHome = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } };
-    let on = localStorage.getItem('ebike-ret-on') === '1', poly = null, hm = null, last = 0;
-    const btn = document.createElement('button'); btn.className = 'btn btn-app'; btn.id = 'btn-ret';
-    btn.style.cssText = 'flex-direction:column;line-height:1.1;border-color:var(--accent);';
-    rail.insertBefore(btn, document.getElementById('btn-call'));
-    const label = (t, bad) => { btn.innerHTML = '<span style="font-size:1.1rem">⭕</span><span style="font-size:.6rem;' + (bad ? 'color:var(--danger);' : '') + '">' + t + '</span>'; };
-    label(on ? '…' : 'RITORNO');
-    const clear = () => { if (poly) { map.removeLayer(poly); poly = null; } };
-    const clearHome = () => { if (hm) { map.removeLayer(hm); hm = null; } };
-    function drawHome() {
-      clearHome(); const h = getHome();
-      if (h && on) hm = L.marker(h, { interactive: false, icon: L.divIcon({ className: '', iconSize: [28, 28], iconAnchor: [14, 14], html: '<div style="font-size:1.6rem;filter:drop-shadow(0 0 3px #000)">🏠</div>' }) }).addTo(map);
-    }
-    function update(force) {
-      if (!on) return;
-      const now = Date.now(); if (!force && now - last < 4000) return; last = now;
-      const h = getHome(), P = lastLL; if (!h || !P) return;
-      const rng = parseFloat((document.querySelector('.batt-range-km') || {}).textContent);
-      if (!(rng > 0)) { clear(); label('no dati', true); return; }
-      const S = rng * 1000 * 0.9 / 1.3;                       // riserva 10% e fattore strade 1.3
-      const lat0 = (P[0] + h[0]) / 2, lon0 = (P[1] + h[1]) / 2, ky = 110540, kx = 111320 * Math.cos(lat0 * Math.PI / 180);
-      const px = (P[1] - lon0) * kx, py = (P[0] - lat0) * ky, hx = (h[1] - lon0) * kx, hy = (h[0] - lat0) * ky;
-      const d = Math.hypot(px - hx, py - hy);
-      clear();
-      if (S <= d) { label('fuori!', true); return; }
-      const a = S / 2, c = d / 2, b = Math.sqrt(a * a - c * c), th = Math.atan2(py - hy, px - hx), pts = [];
-      for (let t = 0; t < 360; t += 5) { const x = a * Math.cos(t * Math.PI / 180), y = b * Math.sin(t * Math.PI / 180);
-        pts.push([lat0 + (x * Math.sin(th) + y * Math.cos(th)) / ky, lon0 + (x * Math.cos(th) - y * Math.sin(th)) / kx]); }
-      const col = document.body.classList.contains('sun-mode') ? '#0066cc' : '#00e5ff';
-      poly = L.polygon(pts, { color: col, weight: 3, dashArray: '8 6', fillOpacity: .1, interactive: false }).addTo(map);
-      label(((S - d) / 2000).toFixed(1) + ' km');
-    }
-    function setHome(ll) { localStorage.setItem(KEY, JSON.stringify(ll)); drawHome(); update(true); toast('🏠 Casa impostata'); }
-    btn.onclick = () => {
-      if (!getHome()) {
-        if (lastLL && confirm('Usare la posizione attuale come casa?')) localStorage.setItem(KEY, JSON.stringify(lastLL));
-        else { toast('📍 Serve il GPS: usa 🔍 → Imposta casa'); return; }
-      }
-      on = !on; localStorage.setItem('ebike-ret-on', on ? '1' : '0');
-      if (on) { drawHome(); label('…'); update(true); } else { clear(); clearHome(); label('RITORNO'); }
-    };
-    const hb = document.createElement('button'); hb.textContent = '🏠 IMPOSTA CASA QUI';
-    hb.onclick = () => { if (!lastLL) { toast('📍 Attendo il GPS…'); return; } setHome(lastLL.slice()); panel.style.display = 'none'; };
-    panel.insertBefore(hb, document.getElementById('nav-res'));
-    setInterval(() => update(false), 5000); setTimeout(() => { drawHome(); update(true); }, 3000);
-  })();
-
   // ═══ BATTERIA 2 (senza Bluetooth): percentuale stimata dai km percorsi, salvata per le volte future ═══
   (function () {
     const KEY = 'ebike-b2', box = $('batt-content'), orig = box.innerHTML;
@@ -2202,7 +2150,7 @@ document.addEventListener('visibilitychange', async () => {
     rail.insertBefore(b, document.getElementById('btn-call'));
     b.onclick = () => {
       let h = null; try { h = JSON.parse(localStorage.getItem('ebike-home')); } catch (e) {}
-      if (!h) { toast('🏠 Imposta casa: 🔍 → Imposta casa qui'); return; }
+      if (!h) { toast('🏠 Imposta casa: tocca la bussola → Casa → Salva qui'); return; }
       if (lastLL && hv(lastLL[0], lastLL[1], h[0], h[1]) < 60) { toast('🏠 Sei già a casa'); return; }
       routeTo({ lat: h[0], lon: h[1], name: 'Casa' });
     };
@@ -2304,7 +2252,8 @@ document.addEventListener('visibilitychange', async () => {
     const price = () => { const v = num(localStorage.getItem(K.price)); return v > 0 ? v : 0.28; };
     const eur = (v, d) => v.toLocaleString('it-IT', { minimumFractionDigits: d || 2, maximumFractionDigits: d || 2 }) + ' €';
     const kwh = v => v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kWh';
-    const rec = { wh: 0, mv: 0, mvB: 0, pts: [], last: null };
+    const rec = { wh: 0, ah: 0, mv: 0, mvB: 0, pts: [], last: null };
+    window.vpRec = () => ({ ah: rec.ah, wh: rec.wh });
     const reliable = () => rec.mv >= 30 && rec.mvB / rec.mv >= 0.9 && rec.wh > 0;
     let lastDist = 0;
 
@@ -2315,11 +2264,12 @@ document.addEventListener('visibilitychange', async () => {
 
     setInterval(() => {
       if (typeof state === 'undefined') return;
-      if (state.distance < lastDist - 1) { rec.wh = 0; rec.mv = 0; rec.mvB = 0; rec.pts = []; rec.last = null; }   // reset viaggio
+      if (state.distance < lastDist - 1) { rec.wh = 0; rec.ah = 0; rec.mv = 0; rec.mvB = 0; rec.pts = []; rec.last = null; }   // reset viaggio
       lastDist = state.distance;
       if (state.gpsActive) {
         if (state.speed > 1) { rec.mv++; if (state.btConnected) rec.mvB++; }
         if (state.btConnected && state.power > 0 && state.power < 5000) rec.wh += state.power / 3600;
+        if (state.btConnected && Math.abs(state.current) < 100) rec.ah += Math.abs(state.current || 0) / 3600;
       }
       const ok = reliable(); tile.style.display = ok ? '' : 'none';
       if (ok) $('cost-live').textContent = eur(rec.wh / 1000 * price());
@@ -2355,12 +2305,12 @@ document.addEventListener('visibilitychange', async () => {
     // estendo saveTrip: aggiunge energia (wh) e traccia (tid) al viaggio salvato dalla funzione esistente
     const _save = window.saveTrip;
     window.saveTrip = function () {
-      const before = localStorage.getItem('ebike-history'), ok = reliable(), wh = rec.wh, pts = rec.pts.slice();
+      const before = localStorage.getItem('ebike-history'), ok = reliable(), wh = rec.wh, ah = rec.ah, pts = rec.pts.slice();
       const r = _save.apply(this, arguments);
       try {
         const after = localStorage.getItem('ebike-history'); if (after === before) return r;
         const h = JSON.parse(after), t = h[0]; if (!t) return r;
-        if (ok) t.wh = wh;
+        if (ok) { t.wh = wh; t.ah = ah; }
         if (pts.length > 1) {
           const id = Date.now(); t.tid = id;
           let tr = {}; try { tr = JSON.parse(localStorage.getItem(K.tracks)) || {}; } catch (e) {}
